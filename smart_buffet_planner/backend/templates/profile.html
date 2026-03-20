@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}Profile Settings - Smart Buffer Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-grid-2 .full { grid-column: 1 / -1; }
+.settings-section { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-blush); }
+.settings-title { font-family: var(--font-display); font-size: 1rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+.input-group-sbp { display: flex; }
+.input-group-sbp .sbp-input { border-radius: 12px 0 0 12px; }
+.input-group-sbp .ig-addon { background: var(--color-blush); border: 2px solid var(--color-blush); border-left: none; border-radius: 0 12px 12px 0; padding: 0 1rem; display: flex; align-items: center; font-size: 0.9rem; color: var(--color-sage); font-weight: 600; }
+.input-group-sbp-pre .sbp-input { border-radius: 0 12px 12px 0; }
+.input-group-sbp-pre .ig-addon { border-right: none; border-left: 2px solid var(--color-blush); border-radius: 12px 0 0 12px; }
+@media (max-width: 600px) { .form-grid-2 { grid-template-columns: 1fr; } .form-grid-2 .full { grid-column: 1; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div style="max-width:800px;margin:0 auto;padding:0 5%">
+    <div style="display:flex;align-items:center;gap:1rem">
+      <a href="/dashboard/" class="btn-sbp btn-sbp-ghost btn-sbp-sm"><i class="fas fa-arrow-left"></i></a>
+      <div>
+        <h1>Profile Settings</h1>
+        <p id="profileSubtitle">Loading...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:800px;margin:0 auto;padding:0 5% 3rem">
+  <div id="alertBox" style="display:none;margin-bottom:1rem"></div>
+
+  <div class="sbp-card">
+    <div class="sbp-card-body">
+      <form id="profileForm">
+        <div class="form-grid-2">
+          <div>
+            <label class="sbp-label">Username</label>
+            <input type="text" class="sbp-input" id="username" />
+          </div>
+          <div>
+            <label class="sbp-label">Email</label>
+            <input type="email" class="sbp-input" id="email" readonly style="opacity:0.6;cursor:not-allowed" />
+          </div>
+          <div>
+            <label class="sbp-label">Phone</label>
+            <input type="tel" class="sbp-input" id="phone" placeholder="+1 234 567 8900" />
+          </div>
+          <div>
+            <label class="sbp-label">Organization</label>
+            <input type="text" class="sbp-input" id="organization" />
+          </div>
+        </div>
+
+        <!-- CATERER settings -->
+        <div id="catererSettings" style="display:none" class="settings-section">
+          <div class="settings-title" style="color:var(--color-sage)"><i class="fas fa-store"></i>Caterer Settings</div>
+          <div class="form-grid-2">
+            <div>
+              <label class="sbp-label">Default Profit Margin %</label>
+              <div class="input-group-sbp">
+                <input type="number" class="sbp-input" id="profit_margin" min="0" max="200" step="0.5" />
+                <span class="ig-addon">%</span>
+              </div>
+              <small style="color:var(--color-sage);font-size:0.8rem">Applied to all events unless overridden per-event</small>
+            </div>
+            <div>
+              <label class="sbp-label">Default Service Charge %</label>
+              <div class="input-group-sbp">
+                <input type="number" class="sbp-input" id="service_charge" min="0" max="50" step="0.5" />
+                <span class="ig-addon">%</span>
+              </div>
+              <small style="color:var(--color-sage);font-size:0.8rem">Added on top of food cost + markup</small>
+            </div>
+          </div>
+          <div class="sbp-alert sbp-alert-info" style="margin-top:1rem">
+            <i class="fas fa-info-circle"></i>
+            <span>Client price = Food Cost × (1 + Markup%) × (1 + Service Charge%)</span>
+          </div>
+        </div>
+
+        <!-- INDIVIDUAL settings -->
+        <div id="individualSettings" style="display:none" class="settings-section">
+          <div class="settings-title" style="color:var(--color-terracotta)"><i class="fas fa-wallet"></i>Individual Settings</div>
+          <div class="form-grid-2">
+            <div>
+              <label class="sbp-label">Default Budget Cap</label>
+              <div class="input-group-sbp input-group-sbp-pre">
+                <span class="ig-addon">$</span>
+                <input type="number" class="sbp-input" id="budget_cap" min="0" placeholder="e.g. 500" />
+              </div>
+              <small style="color:var(--color-sage);font-size:0.8rem">You'll be warned when events exceed this</small>
+            </div>
+            <div>
+              <label class="sbp-label">Dietary Preference</label>
+              <select class="sbp-select" id="dietary_preference">
+                <option value="all">No Preference</option>
+                <option value="vegetarian">Vegetarian</option>
+                <option value="vegan">Vegan</option>
+              </select>
+              <small style="color:var(--color-sage);font-size:0.8rem">Enforced during menu selection</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- ORGANIZER settings -->
+        <div id="organizerSettings" style="display:none" class="settings-section">
+          <div class="settings-title" style="color:#4e79a7"><i class="fas fa-user-tie"></i>Organizer Settings</div>
+          <div class="sbp-alert sbp-alert-info">
+            <i class="fas fa-info-circle"></i>
+            <span>As an Event Organizer you can track client details, RSVP counts, and mark events complete. These features appear automatically on your event pages.</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-sbp btn-sbp-primary" id="saveBtn" style="width:100%;justify-content:center;margin-top:2rem;padding:0.9rem">
+          <i class="fas fa-save"></i> Save Settings
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+requireAuth();
+const user = getUser();
+const role = user?.role || 'organizer';
+
+const subtitles = { organizer:'Event Organizer', caterer:'Caterer', individual:'Individual', admin:'Admin' };
+document.getElementById('profileSubtitle').textContent = subtitles[role]||role;
+
+if (role==='caterer')    document.getElementById('catererSettings').style.display='';
+if (role==='individual') document.getElementById('individualSettings').style.display='';
+if (role==='organizer')  document.getElementById('organizerSettings').style.display='';
+
+async function loadProfile() {
+  const data = await apiGet('/api/auth/profile/');
+  if (!data) return;
+  document.getElementById('username').value = data.username||'';
+  document.getElementById('email').value = data.email||'';
+  document.getElementById('phone').value = data.phone||'';
+  document.getElementById('organization').value = data.organization||'';
+  if (role==='caterer') {
+    document.getElementById('profit_margin').value = data.profit_margin||20;
+    document.getElementById('service_charge').value = data.service_charge||5;
+  }
+  if (role==='individual') {
+    document.getElementById('budget_cap').value = data.budget_cap||'';
+    document.getElementById('dietary_preference').value = data.dietary_preference||'all';
+  }
+}
+
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('saveBtn');
+  btn.disabled=true; btn.innerHTML='<div class="sbp-spinner"></div> Saving...';
+  const payload = {
+    username: document.getElementById('username').value,
+    phone: document.getElementById('phone').value,
+    organization: document.getElementById('organization').value,
+  };
+  if (role==='caterer') {
+    payload.profit_margin = document.getElementById('profit_margin').value;
+    payload.service_charge = document.getElementById('service_charge').value;
+  }
+  if (role==='individual') {
+    payload.budget_cap = document.getElementById('budget_cap').value||null;
+    payload.dietary_preference = document.getElementById('dietary_preference').value;
+  }
+  const res = await fetch('/api/auth/profile/', {
+    method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Bearer '+getToken()},
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (res.ok) { localStorage.setItem('user',JSON.stringify(data)); showAlert('alertBox','Settings saved successfully!','success'); }
+  else showAlert('alertBox', JSON.stringify(data), 'danger');
+  btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> Save Settings';
+});
+
+loadProfile();
+</script>
+{% endblock %}

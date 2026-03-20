@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard - Smart Buffer Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+.role-banner { border-radius: 16px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem; }
+.role-banner-organizer { background: #e8f0fe; border-left: 4px solid #4e79a7; }
+.role-banner-caterer    { background: #e8f0e9; border-left: 4px solid var(--color-sage); }
+.role-banner-individual { background: var(--color-blush); border-left: 4px solid var(--color-terracotta); }
+.event-row { transition: background 0.15s; }
+.event-row:hover { background: rgba(249,246,240,0.8) !important; }
+.search-bar { background: white; border: 2px solid var(--color-blush); border-radius: 50px; padding: 0.5rem 1.25rem; font-family: var(--font-body); font-size: 0.9rem; outline: none; transition: border-color 0.2s; width: 200px; }
+.search-bar:focus { border-color: var(--color-terracotta); }
+.filter-select { background: white; border: 2px solid var(--color-blush); border-radius: 50px; padding: 0.5rem 2rem 0.5rem 1rem; font-family: var(--font-body); font-size: 0.85rem; outline: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%235A6B5C' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; }
+.quick-action { background: white; border: 2px solid var(--color-blush); border-radius: 14px; padding: 1rem 1.25rem; text-decoration: none; color: var(--color-charcoal); display: flex; align-items: center; gap: 0.75rem; font-weight: 500; font-size: 0.9rem; transition: all 0.2s; }
+.quick-action:hover { border-color: var(--color-terracotta); color: var(--color-terracotta); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(199,91,57,0.12); }
+.quick-action .qa-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div style="max-width:1200px;margin:0 auto;padding:0 5%">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
+      <div>
+        <h1>My Dashboard</h1>
+        <p>Welcome back, <span id="welcomeName" style="color:var(--color-gold);font-weight:600"></span>
+          &nbsp;<span id="rolePill" class="sbp-badge" style="font-size:0.7rem"></span>
+        </p>
+      </div>
+      <a href="/events/create/" class="btn-sbp btn-sbp-primary">
+        <i class="fas fa-plus"></i> New Event
+      </a>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:1200px;margin:0 auto;padding:0 5% 3rem">
+
+  <!-- Role tip -->
+  <div id="roleTipBanner" style="display:none" class="role-banner">
+    <i class="fas fa-lightbulb" style="font-size:1.3rem;flex-shrink:0"></i>
+    <span id="roleTipText" style="font-size:0.9rem"></span>
+  </div>
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem" id="statsGrid">
+    <div class="stat-card">
+      <div class="stat-icon icon-blue"><i class="fas fa-calendar-alt"></i></div>
+      <h3 id="statTotal">—</h3>
+      <small>Total Events</small>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon icon-sage"><i class="fas fa-check-circle"></i></div>
+      <h3 id="statPlanned">—</h3>
+      <small>Planned Events</small>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon icon-gold"><i class="fas fa-users"></i></div>
+      <h3 id="statGuests">—</h3>
+      <small>Total Guests</small>
+    </div>
+    <div class="stat-card" id="roleStatCard">
+      <div class="stat-icon icon-terracotta" id="roleStatIconWrap"><i id="roleStatIcon" class="fas fa-chart-line"></i></div>
+      <h3 id="roleStatValue">—</h3>
+      <small id="roleStatLabel">—</small>
+    </div>
+  </div>
+
+  <!-- Quick actions -->
+  <div id="quickActions" style="display:none;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.5rem"></div>
+
+  <!-- Events table -->
+  <div class="sbp-card">
+    <div class="sbp-card-header">
+      <h5><i class="fas fa-list" style="color:var(--color-terracotta);margin-right:0.5rem"></i>My Events</h5>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <input type="text" class="search-bar" id="searchEvents" placeholder="🔍 Search..." oninput="filterEvents()" />
+        <select class="filter-select" id="statusFilter" onchange="filterEvents()">
+          <option value="">All Status</option>
+          <option value="draft">Draft</option>
+          <option value="planned">Planned</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="sbp-table" id="eventsTable">
+        <thead>
+          <tr>
+            <th>Event Name</th><th>Type</th><th>Date</th><th>Guests</th>
+            <th id="roleColHeader">Client</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="eventsBody">
+          <tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--color-sage)">
+            <div class="sbp-spinner sbp-spinner-dark" style="margin:0 auto"></div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+requireAuth();
+const user = getUser();
+const role = user?.role || 'organizer';
+let allEvents = [];
+
+// Role pill
+const pillCfg = { organizer:['badge-blue','Event Organizer'], caterer:['badge-sage','Caterer'], individual:['badge-terracotta','Individual'], admin:['badge-charcoal','Admin'] };
+const [pc, pl] = pillCfg[role] || pillCfg.organizer;
+const rp = document.getElementById('rolePill');
+rp.className = `sbp-badge ${pc}`; rp.textContent = pl;
+
+// Role stat card
+const rsCfg = { caterer:['fa-chart-line','Total Profit'], organizer:['fa-user-check','Confirmed RSVPs'], individual:['fa-wallet','Total Spend'] };
+const [rsIco, rsLbl] = rsCfg[role] || rsCfg.organizer;
+document.getElementById('roleStatIcon').className = `fas ${rsIco}`;
+document.getElementById('roleStatLabel').textContent = rsLbl;
+
+// Role col header
+document.getElementById('roleColHeader').textContent = {caterer:'Markup',organizer:'Client',individual:'Budget'}[role] || '';
+
+// Role tip
+const tips = {
+  organizer: ['role-banner-organizer','fa-user-tie','Add client details and track RSVPs when creating events. Mark events complete after they happen.'],
+  caterer:   ['role-banner-caterer','fa-store','Set your profit margin in Profile. Use Shopping List on results page to get ingredient quantities with markup.'],
+  individual:['role-banner-individual','fa-wallet','Set a budget cap when creating events. Your dietary preference filters dishes automatically.'],
+};
+if (tips[role]) {
+  const [cls,ico,msg] = tips[role];
+  const b = document.getElementById('roleTipBanner');
+  b.classList.add(cls); b.style.display = 'flex';
+  b.querySelector('i').className = `fas ${ico}`;
+  document.getElementById('roleTipText').textContent = msg;
+}
+
+// Quick actions
+const qaCfg = {
+  organizer: [{href:'/events/create/',icon:'fa-calendar-plus',label:'New Event',bg:'var(--color-blush)',c:'var(--color-terracotta)'},{href:'/analytics/',icon:'fa-chart-pie',label:'Analytics',bg:'#e8f0fe',c:'#4e79a7'}],
+  caterer:   [{href:'/events/create/',icon:'fa-calendar-plus',label:'New Client Event',bg:'#e8f0e9',c:'var(--color-sage)'},{href:'/analytics/',icon:'fa-chart-line',label:'Revenue Analytics',bg:'#e8f0fe',c:'#4e79a7'},{href:'/profile/',icon:'fa-cog',label:'Set Profit Margin',bg:'#fdf3e7',c:'#9a6f2e'}],
+  individual:[{href:'/events/create/',icon:'fa-calendar-plus',label:'Plan My Event',bg:'var(--color-blush)',c:'var(--color-terracotta)'},{href:'/analytics/',icon:'fa-chart-pie',label:'My Spending',bg:'#e8f0fe',c:'#4e79a7'}],
+};
+if (qaCfg[role]) {
+  const qa = document.getElementById('quickActions');
+  qa.style.display = 'flex';
+  qa.innerHTML = qaCfg[role].map(a => `
+    <a href="${a.href}" class="quick-action">
+      <div class="qa-icon" style="background:${a.bg};color:${a.c}"><i class="fas ${a.icon}"></i></div>
+      ${a.label}
+    </a>`).join('');
+}
+
+async function loadDashboard() {
+  document.getElementById('welcomeName').textContent = user?.username || user?.email || 'User';
+  const stats = await apiGet('/api/analytics/dashboard/');
+  if (stats) {
+    document.getElementById('statTotal').textContent = stats.summary.total_events;
+    document.getElementById('statPlanned').textContent = stats.summary.planned_events;
+    document.getElementById('statGuests').textContent = stats.summary.total_guests.toLocaleString();
+    document.getElementById('roleStatValue').textContent = '$' + (stats.summary.total_spend||0).toLocaleString();
+  }
+  const data = await apiGet('/api/events/');
+  if (data) { allEvents = data.results || data; renderEvents(allEvents); }
+}
+
+function statusBadge(s) {
+  return {draft:'badge-charcoal',planned:'badge-sage',completed:'badge-gold'}[s]||'badge-charcoal';
+}
+
+function renderEvents(events) {
+  const tbody = document.getElementById('eventsBody');
+  if (!events.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--color-sage)">
+      <i class="fas fa-calendar-plus" style="font-size:2.5rem;display:block;margin-bottom:0.75rem;opacity:0.4"></i>
+      No events yet. <a href="/events/create/" style="color:var(--color-terracotta);font-weight:600">Create your first event →</a>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = events.map(e => {
+    let roleCol = '';
+    if (role==='organizer') roleCol = e.client_name || '<span style="color:var(--color-sage)">—</span>';
+    else if (role==='caterer') roleCol = e.markup_percentage ? e.markup_percentage+'%' : '<span style="color:var(--color-sage)">default</span>';
+    else if (role==='individual') roleCol = e.personal_budget ? '$'+e.personal_budget : '<span style="color:var(--color-sage)">no cap</span>';
+    return `<tr class="event-row">
+      <td style="font-weight:600">${e.name}</td>
+      <td><span class="sbp-badge badge-charcoal">${e.event_type}</span></td>
+      <td style="color:var(--color-sage)">${e.event_date}</td>
+      <td><i class="fas fa-users" style="color:var(--color-sage);margin-right:0.3rem;font-size:0.8rem"></i>${e.guest_count}${e.confirmed_guests?`<span style="color:var(--color-sage);font-size:0.8rem;margin-left:0.3rem">(${e.confirmed_guests} confirmed)</span>`:''}</td>
+      <td>${roleCol}</td>
+      <td><span class="sbp-badge ${statusBadge(e.status)}">${e.status}</span></td>
+      <td style="display:flex;gap:0.4rem">
+        <a href="/events/${e.id}/menu/" class="btn-sbp btn-sbp-ghost btn-sbp-sm" title="Menu"><i class="fas fa-utensils"></i></a>
+        <a href="/events/${e.id}/result/" class="btn-sbp btn-sbp-ghost btn-sbp-sm" title="Results"><i class="fas fa-chart-bar"></i></a>
+        <button class="btn-sbp btn-sbp-danger btn-sbp-sm" onclick="deleteEvent(${e.id})" title="Delete"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterEvents() {
+  const q = document.getElementById('searchEvents').value.toLowerCase();
+  const st = document.getElementById('statusFilter').value;
+  renderEvents(allEvents.filter(e => (e.name.toLowerCase().includes(q)||e.event_type.includes(q)) && (!st||e.status===st)));
+}
+
+async function deleteEvent(id) {
+  if (!confirm('Delete this event?')) return;
+  const ok = await apiDelete(`/api/events/${id}/`);
+  if (ok) loadDashboard();
+}
+
+loadDashboard();
+</script>
+{% endblock %}

@@ -1,0 +1,38 @@
+[
+  {"model": "menu.category", "pk": 1, "fields": {"name": "Starter", "order": 1}},
+  {"model": "menu.category", "pk": 2, "fields": {"name": "Main Course", "order": 2}},
+  {"model": "menu.category", "pk": 3, "fields": {"name": "Dessert", "order": 3}},
+  {"model": "menu.category", "pk": 4, "fields": {"name": "Beverage", "order": 4}},
+  {"model": "menu.category", "pk": 5, "fields": {"name": "Salad", "order": 5}},
+  {"model": "menu.category", "pk": 6, "fields": {"name": "Bread & Rice", "order": 6}},
+
+  {"model": "menu.dish", "pk": 1, "fields": {"name": "Vegetable Spring Rolls", "category": 1, "quantity_per_person": 80, "unit": "grams", "cost_per_unit": 0.015, "preparation_time": 30, "season": "all", "is_vegetarian": true, "is_active": true, "description": "Crispy vegetable spring rolls"}},
+  {"model": "menu.dish", "pk": 2, "fields": {"name": "Chicken Tikka", "category": 1, "quantity_per_person": 100, "unit": "grams", "cost_per_unit": 0.025, "preparation_time": 45, "season": "all", "is_vegetarian": false, "is_active": true, "description": "Marinated grilled chicken"}},
+  {"model": "menu.dish", "pk": 3, "fields": {"name": "Paneer Tikka", "category": 1, "quantity_per_person": 90, "unit": "grams", "cost_per_unit": 0.020, "preparation_time": 35, "season": "all", "is_vegetarian": true, "is_active": true, "description": "Grilled cottage cheese"}},
+  {"model": "menu.dish", "pk": 4, "fields": {"name": "Soup of the Day", "category": 1, "quantity_per_person": 150, "unit": "ml", "cost_per_unit": 0.008, "preparation_time": 20, "season": "winter", "is_vegetarian": true, "is_active": true, "description": "Warm seasonal soup"}},
+  {"model": "menu.dish", "pk": 5, "fields": {"name": "Bruschetta", "category": 1, "quantity_per_person": 60, "unit": "grams", "cost_per_unit": 0.012, "preparation_time": 15, "season": "summer", "is_vegetarian": true, "is_active": true, "description": "Toasted bread with tomatoes"}},
+
+  {"model": "menu.dish", "pk": 6, "fields": {"name": "Butter Chicken", "category": 2, "quantity_per_person": 200, "unit": "grams", "cost_per_unit": 0.022, "preparation_time": 60, "season": "all", "is_vegetarian": false, "is_active": true, "description": "Creamy tomato chicken curry"}},
+  {"model": "menu.dish", "pk": 7, "fields": {"name": "Dal Makhani", "category": 2, "quantity_per_person": 180, "unit": "grams", "cost_per_unit": 0.010, "preparation_time": 90, "season": "winter", "is_vegetarian": true, "is_active": true, "description": "Slow-cooked black lentils"}},
+  {"model": "menu.dish", "pk": 8, "fields": {"name": "Palak Paneer", "category": 2, "quantity_per_person": 180, "unit": "grams", "cost_per_unit": 0.018, "preparation_time": 40, "season": "all", "is_vegetarian": true, "is_active": true, "description": "Spinach and cottage cheese"}},
+  {"model": "menu.dish", "pk": 9, "fields": {"name": "Grilled Fish", "category": 2, "quantity_per_person": 200, "unit": "grams", "cost_per_unit": 0.030, "preparation_time": 30, "season": "all", "is_vegetarian": false, "is_active": true, "description": "Herb-marinated grilled fish"}},
+  {"model": "menu.dish", "pk": 10, "fields": {"name": "Pasta Arrabiata", "category": 2, "quantity_per_person": 200, "unit": "grams", "cost_per_unit": 0.012, "preparation_time": 25, "season": "all", "is_vegetarian": true, "is_active": true, "description": "Spicy tomato pasta"}},
+  {"model": "menu.dish", "pk": 11, "fields": {"name": "Biryani", "category": 2, "quantity_per_person": 250, "unit": "grams", "cost_per_unit": 0.018, "preparation_time": 90, "season": "all", "is_vegetarian": false, "is_active": true, "description": "Aromatic rice dish"}},
+
+  {"model": "menu.dish", "pk": 12, "fields": {"name": "Gulab Jamun", "category": 3, "quantity_per_person": 80, "unit": "grams", "cost_per_unit": 0.014, "preparation_time": 30, "season": "all", "is_vegetarian": true, "is_active": true, "description": "Sweet milk dumplings in syrup"}},
+  {"model": "menu.dish", "pk": 13, "fields": {"name": "Ice Cream", "category": 3, "quantity_per_person": 100, "unit": "grams", "cost_per_unit": 0.020, "preparation_time": 5, "season": "summer", "is_vegetarian": true, "is_active": true, "description": "Assorted ice cream scoops"}},
+  {"model": "menu.dish", "pk": 14, "fields": {"name": "Chocolate Brownie", "category": 3, "quantity_per_person": 70, "unit": "grams", "cost_per_unit": 0.025, "preparation_time": 45, "season": "all", "is_vegetarian": true, "is_active": true, "description": "Rich chocolate brownie"}},
+  {"model": "menu.dish", "pk": 15, "fields": {"name": "Fruit Salad", "category": 3, "quantity_per_person": 120, "unit": "grams", "cost_per_unit": 0.010, "preparation_time": 15, "season": "summer", "is_vegetarian": true, "is_active": true, "description": "Fresh seasonal fruits"}},
+
+  {"model": "menu.dish", "pk": 16, "fields": {"name": "Lemonade", "category": 4, "quantity_per_person": 250, "unit": "ml", "cost_per_unit": 0.004, "preparation_time": 10, "season": "summer", "is_vegetarian": true, "is_active": true, "description": "Fresh squeezed lemonade"}},
+  {"model": "menu.dish", "pk": 17, "fields": {"name": "Masala Chai", "category": 4, "quantity_per_person": 200, "unit": "ml", "cost_per_unit": 0.005, "preparation_time": 10, "season": "winter", "is_vegetarian": true, "is_active": true, "description": "Spiced Indian tea"}},
+  {"model": "menu.dish", "pk": 18, "fields": {"name": "Mango Lassi", "category": 4, "quantity_per_person": 250, "unit": "ml", "cost_per_unit": 0.006, "preparation_time": 5, "season": "summer", "is_vegetarian": true, "is_active": true, "description": "Mango yogurt drink"}},
+  {"model": "menu.dish", "pk": 19, "fields": {"name": "Soft Drinks", "category": 4, "quantity_per_person": 300, "unit": "ml", "cost_per_unit": 0.003, "preparation_time": 2, "season": "all", "is_vegetarian": true, "is_active": true, "description": "Assorted soft drinks"}},
+
+  {"model": "menu.dish", "pk": 20, "fields": {"name": "Caesar Salad", "category": 5, "quantity_per_person": 100, "unit": "grams", "cost_per_unit": 0.012, "preparation_time": 15, "season": "summer", "is_vegetarian": true, "is_active": true, "description": "Classic Caesar salad"}},
+  {"model": "menu.dish", "pk": 21, "fields": {"name": "Greek Salad", "category": 5, "quantity_per_person": 100, "unit": "grams", "cost_per_unit": 0.014, "preparation_time": 10, "season": "summer", "is_vegetarian": true, "is_active": true, "description": "Fresh Mediterranean salad"}},
+
+  {"model": "menu.dish", "pk": 22, "fields": {"name": "Steamed Rice", "category": 6, "quantity_per_person": 150, "unit": "grams", "cost_per_unit": 0.004, "preparation_time": 20, "season": "all", "is_vegetarian": true, "is_active": true, "description": "Plain steamed basmati rice"}},
+  {"model": "menu.dish", "pk": 23, "fields": {"name": "Garlic Naan", "category": 6, "quantity_per_person": 80, "unit": "grams", "cost_per_unit": 0.008, "preparation_time": 15, "season": "all", "is_vegetarian": true, "is_active": true, "description": "Soft garlic flatbread"}},
+  {"model": "menu.dish", "pk": 24, "fields": {"name": "Dinner Rolls", "category": 6, "quantity_per_person": 60, "unit": "grams", "cost_per_unit": 0.007, "preparation_time": 30, "season": "all", "is_vegetarian": true, "is_active": true, "description": "Soft dinner rolls"}}
+]

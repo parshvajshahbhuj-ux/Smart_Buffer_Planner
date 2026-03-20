@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+{% block title %}Buffet Results - Smart Buffer Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+.result-panel { border-radius: 16px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+.panel-organizer { background: #e8f0fe; border-left: 4px solid #4e79a7; }
+.panel-caterer   { background: #e8f0e9; border-left: 4px solid var(--color-sage); }
+.panel-individual-ok  { background: #e8f0e9; border-left: 4px solid var(--color-sage); }
+.panel-individual-over{ background: var(--color-blush); border-left: 4px solid var(--color-terracotta); }
+.panel-title { font-family: var(--font-display); font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+.panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; }
+.panel-stat small { display: block; color: var(--color-sage); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.2rem; }
+.panel-stat strong { font-size: 1.1rem; }
+.progress-bar-wrap { height: 8px; background: var(--color-blush); border-radius: 50px; margin-top: 0.75rem; overflow: hidden; }
+.progress-bar-fill { height: 100%; border-radius: 50px; transition: width 0.6s var(--ease-out-expo); }
+.chart-card { background: white; border-radius: 16px; padding: 1.25rem; border: 1px solid rgba(26,26,26,0.06); box-shadow: 0 4px 20px rgba(26,26,26,0.05); }
+.chart-card h6 { font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div style="max-width:1200px;margin:0 auto;padding:0 5%">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
+      <div style="display:flex;align-items:center;gap:1rem">
+        <a href="/dashboard/" class="btn-sbp btn-sbp-ghost btn-sbp-sm"><i class="fas fa-arrow-left"></i></a>
+        <div>
+          <h1 id="resultTitle">Buffet Plan Results</h1>
+          <p id="resultSubtitle">Loading...</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <a href="#" id="editMenuBtn" class="btn-sbp btn-sbp-ghost btn-sbp-sm"><i class="fas fa-edit"></i> Edit Menu</a>
+        <button class="btn-sbp btn-sbp-success btn-sbp-sm" id="markCompleteBtn" style="display:none" onclick="markComplete()"><i class="fas fa-check"></i> Mark Complete</button>
+        <button class="btn-sbp btn-sbp-ghost btn-sbp-sm" id="shoppingListBtn" style="display:none" onclick="loadShoppingList()"><i class="fas fa-shopping-basket"></i> Shopping List</button>
+        <button class="btn-sbp btn-sbp-danger btn-sbp-sm" onclick="downloadPDF()" id="pdfBtn"><i class="fas fa-file-pdf"></i> Download PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:1200px;margin:0 auto;padding:0 5% 3rem">
+
+  <!-- Summary stats -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem">
+    <div class="stat-card">
+      <div class="stat-icon icon-sage"><i class="fas fa-dollar-sign"></i></div>
+      <h3 id="totalCost">—</h3><small>Total Food Cost</small>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon icon-blue"><i class="fas fa-user-tag"></i></div>
+      <h3 id="costPerGuest">—</h3><small>Cost Per Guest</small>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon icon-gold"><i class="fas fa-recycle"></i></div>
+      <h3 id="wastePct">—</h3><small>Est. Waste %</small>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon icon-terracotta"><i class="fas fa-exclamation-triangle" id="wasteIcon"></i></div>
+      <h3 id="wasteRisk">—</h3><small>Waste Risk</small>
+    </div>
+  </div>
+
+  <!-- Role panels -->
+  <div id="catererPanel" class="result-panel panel-caterer" style="display:none">
+    <div class="panel-title" style="color:var(--color-sage)"><i class="fas fa-store"></i>Caterer Pricing Summary</div>
+    <div class="panel-grid">
+      <div class="panel-stat"><small>Markup</small><strong id="cMarkup">—</strong></div>
+      <div class="panel-stat"><small>Service Charge</small><strong id="cService">—</strong></div>
+      <div class="panel-stat"><small>Client Total</small><strong id="cClientTotal" style="color:var(--color-sage);font-size:1.3rem">—</strong></div>
+      <div class="panel-stat"><small>Your Profit</small><strong id="cProfit" style="color:var(--color-terracotta)">—</strong></div>
+      <div class="panel-stat"><small>Per Guest</small><strong id="cPerGuest" style="font-size:1.3rem">—</strong></div>
+    </div>
+  </div>
+
+  <div id="organizerPanel" class="result-panel panel-organizer" style="display:none">
+    <div class="panel-title" style="color:#4e79a7"><i class="fas fa-user-tie"></i>Client & RSVP Summary</div>
+    <div class="panel-grid" style="margin-bottom:1rem">
+      <div class="panel-stat"><small>Client</small><strong id="oClient">—</strong></div>
+      <div class="panel-stat"><small>Planned Guests</small><strong id="oPlanned">—</strong></div>
+      <div class="panel-stat"><small>Confirmed RSVPs</small><strong id="oConfirmed">—</strong></div>
+      <div class="panel-stat"><small>RSVP Gap</small><strong id="oGap" style="color:var(--color-terracotta)">—</strong></div>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:center;max-width:280px">
+      <input type="number" class="sbp-input" id="rsvpInput" min="0" placeholder="Update RSVP count" style="padding:0.6rem 0.85rem" />
+      <button class="btn-sbp btn-sbp-secondary btn-sbp-sm" onclick="updateRSVP()" style="white-space:nowrap">Update</button>
+    </div>
+  </div>
+
+  <div id="individualPanel" class="result-panel panel-individual-ok" style="display:none">
+    <div class="panel-title"><i class="fas fa-wallet"></i>Budget Tracker</div>
+    <div class="panel-grid">
+      <div class="panel-stat"><small>Your Budget</small><strong id="iBudget">—</strong></div>
+      <div class="panel-stat"><small>Total Cost</small><strong id="iCost">—</strong></div>
+      <div class="panel-stat"><small>Remaining</small><strong id="iRemaining">—</strong></div>
+    </div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="budgetBar" style="width:0%;background:var(--color-sage)"></div></div>
+  </div>
+
+  <!-- Charts -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+    <div class="chart-card">
+      <h6><i class="fas fa-chart-pie" style="color:var(--color-terracotta)"></i>Category Distribution</h6>
+      <canvas id="pieChart" height="250"></canvas>
+    </div>
+    <div class="chart-card">
+      <h6><i class="fas fa-chart-bar" style="color:var(--color-sage)"></i>Dish Quantities</h6>
+      <canvas id="barChart" height="250"></canvas>
+    </div>
+  </div>
+
+  <!-- Detail table -->
+  <div class="sbp-card">
+    <div class="sbp-card-header">
+      <h5><i class="fas fa-list" style="color:var(--color-terracotta);margin-right:0.5rem"></i>Detailed Breakdown</h5>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="sbp-table">
+        <thead><tr><th>Dish</th><th>Category</th><th>Qty/Person</th><th>Total Qty</th><th>With Buffer</th><th>Cost</th></tr></thead>
+        <tbody id="detailTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Shopping List Modal -->
+<div id="shoppingModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:white;border-radius:24px;max-width:700px;width:100%;max-height:85vh;overflow-y:auto">
+    <div style="padding:1.5rem;border-bottom:1px solid var(--color-blush);display:flex;justify-content:space-between;align-items:center">
+      <h5 style="font-family:var(--font-display);font-weight:700;margin:0"><i class="fas fa-shopping-basket" style="color:var(--color-terracotta);margin-right:0.5rem"></i>Shopping List</h5>
+      <button onclick="document.getElementById('shoppingModal').style.display='none'" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--color-sage)">&times;</button>
+    </div>
+    <div style="padding:1.5rem" id="shoppingModalBody">
+      <div style="text-align:center;padding:2rem"><div class="sbp-spinner sbp-spinner-dark" style="margin:0 auto"></div></div>
+    </div>
+  </div>
+</div>
+
+<style>
+@media (max-width: 768px) {
+  div[style*="grid-template-columns:repeat(4,1fr)"] { grid-template-columns: repeat(2,1fr) !important; }
+  div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+requireAuth();
+const eventId = window.location.pathname.split('/')[2];
+const user = getUser();
+const role = user?.role || 'organizer';
+let pieInst, barInst;
+
+document.getElementById('editMenuBtn').href = `/events/${eventId}/menu/`;
+if (role==='organizer') document.getElementById('markCompleteBtn').style.display='';
+if (role==='caterer')   document.getElementById('shoppingListBtn').style.display='';
+
+async function loadResults() {
+  const data = await apiGet(`/api/analytics/event/${eventId}/`);
+  if (!data) return;
+  document.getElementById('resultTitle').textContent = data.event.name + ' — Results';
+  document.getElementById('resultSubtitle').textContent = `${data.event.guest_count} guests`;
+  document.getElementById('totalCost').textContent = '$' + data.summary.total_cost.toLocaleString();
+  document.getElementById('costPerGuest').textContent = '$' + data.summary.cost_per_guest;
+  document.getElementById('wastePct').textContent = data.summary.estimated_waste_pct + '%';
+  document.getElementById('wasteRisk').textContent = data.summary.waste_risk;
+
+  const riskColors = {Low:'icon-sage',Medium:'icon-gold',High:'icon-terracotta'};
+  document.querySelector('#wasteIcon').closest('.stat-icon').className = `stat-icon ${riskColors[data.summary.waste_risk]||'icon-terracotta'}`;
+
+  const palette = ['#C75B39','#5A6B5C','#D4A574','#4e79a7','#e15759','#76b7b2','#edc948','#b07aa1'];
+  if (pieInst) pieInst.destroy();
+  pieInst = new Chart(document.getElementById('pieChart'), {
+    type: 'pie',
+    data: { labels: data.pie_chart.labels, datasets: [{ data: data.pie_chart.quantities, backgroundColor: palette }] },
+    options: { plugins: { legend: { position: 'bottom', labels: { font: { family: 'Space Grotesk' } } } } }
+  });
+  if (barInst) barInst.destroy();
+  barInst = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: { labels: data.bar_chart.labels, datasets: [{ label: 'Qty (with buffer)', data: data.bar_chart.quantities, backgroundColor: '#C75B39', borderRadius: 6 }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+
+  const calc = await apiGet(`/api/events/${eventId}/calculations/`);
+  if (!calc) return;
+  const ex = calc.role_extras || {};
+
+  if (role==='caterer') {
+    document.getElementById('catererPanel').style.display='';
+    document.getElementById('cMarkup').textContent = ex.markup_pct+'%';
+    document.getElementById('cService').textContent = ex.service_charge_pct+'%';
+    document.getElementById('cClientTotal').textContent = '$'+ex.client_total?.toLocaleString();
+    document.getElementById('cProfit').textContent = '$'+ex.profit?.toLocaleString();
+    document.getElementById('cPerGuest').textContent = '$'+ex.client_per_guest;
+  }
+  if (role==='organizer') {
+    document.getElementById('organizerPanel').style.display='';
+    document.getElementById('oClient').textContent = ex.client_name||'N/A';
+    document.getElementById('oPlanned').textContent = calc.guest_count;
+    document.getElementById('oConfirmed').textContent = ex.confirmed_guests??'Not set';
+    document.getElementById('oGap').textContent = ex.rsvp_gap!=null ? ex.rsvp_gap+' unconfirmed' : '—';
+    if (ex.confirmed_guests) document.getElementById('rsvpInput').value = ex.confirmed_guests;
+  }
+  if (role==='individual') {
+    const panel = document.getElementById('individualPanel');
+    panel.style.display='';
+    const over = ex.over_budget;
+    panel.className = `result-panel ${over?'panel-individual-over':'panel-individual-ok'}`;
+    document.getElementById('iBudget').textContent = ex.personal_budget ? '$'+ex.personal_budget : 'No cap set';
+    document.getElementById('iCost').textContent = '$'+calc.total_cost;
+    const rem = ex.budget_remaining;
+    document.getElementById('iRemaining').textContent = rem!=null ? (over?'-$'+Math.abs(rem)+' OVER':'$'+rem+' left') : 'N/A';
+    if (ex.personal_budget) {
+      const pct = Math.min((calc.total_cost/ex.personal_budget)*100,100);
+      const bar = document.getElementById('budgetBar');
+      bar.style.width = pct+'%';
+      bar.style.background = over?'var(--color-terracotta)':pct>80?'#D4A574':'var(--color-sage)';
+    }
+  }
+
+  document.getElementById('detailTable').innerHTML = calc.items.map(item => `
+    <tr>
+      <td style="font-weight:600">${item.dish}</td>
+      <td><span class="sbp-badge badge-charcoal">${item.category}</span></td>
+      <td>${item.qty_per_person} ${item.unit}</td>
+      <td>${item.total_quantity.toFixed(1)}</td>
+      <td style="font-weight:600">${item.total_with_buffer.toFixed(1)}</td>
+      <td style="color:var(--color-sage);font-weight:600">$${item.total_cost.toFixed(2)}</td>
+    </tr>`).join('') + `
+    <tr style="background:var(--color-cream)">
+      <td colspan="5" style="text-align:right;font-weight:700;padding:0.9rem 1rem">Total</td>
+      <td style="font-weight:700;color:var(--color-terracotta);padding:0.9rem 1rem">$${calc.total_cost.toFixed(2)}</td>
+    </tr>`;
+}
+
+async function markComplete() {
+  if (!confirm('Mark this event as completed?')) return;
+  const res = await fetch(`/api/events/${eventId}/mark_complete/`, { method:'POST', headers:{'Authorization':'Bearer '+getToken()} });
+  if (res.ok) { const b = document.getElementById('markCompleteBtn'); b.textContent='✓ Completed'; b.disabled=true; }
+}
+
+async function updateRSVP() {
+  const val = document.getElementById('rsvpInput').value;
+  if (!val) return;
+  const res = await fetch(`/api/events/${eventId}/update_rsvp/`, {
+    method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Bearer '+getToken()},
+    body: JSON.stringify({confirmed_guests:parseInt(val)})
+  });
+  if (res.ok) {
+    document.getElementById('oConfirmed').textContent = val;
+    document.getElementById('oGap').textContent = (parseInt(document.getElementById('oPlanned').textContent)-parseInt(val))+' unconfirmed';
+  }
+}
+
+async function loadShoppingList() {
+  document.getElementById('shoppingModal').style.display='flex';
+  const data = await apiGet(`/api/events/${eventId}/shopping_list/`);
+  if (!data) return;
+  const cs = data.cost_summary;
+  let html = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-bottom:1.5rem">
+    <div class="panel-stat"><small>Raw Food Cost</small><strong>${cs.raw_food_cost}</strong></div>
+    <div class="panel-stat"><small>After Markup (${cs.markup_pct}%)</small><strong>${cs.after_markup}</strong></div>
+    <div class="panel-stat"><small>Client Total</small><strong style="color:var(--color-sage);font-size:1.2rem">${cs.client_total}</strong></div>
+    <div class="panel-stat"><small>Your Profit</small><strong style="color:var(--color-terracotta)">${cs.profit}</strong></div>
+  </div>`;
+  for (const [cat, items] of Object.entries(data.shopping_list)) {
+    html += `<h6 style="font-family:var(--font-display);font-weight:700;color:var(--color-terracotta);margin:1rem 0 0.5rem"><i class="fas fa-tag" style="margin-right:0.4rem"></i>${cat}</h6>
+    <table class="sbp-table" style="margin-bottom:0.5rem">
+      <thead><tr><th>Dish</th><th>Quantity Needed</th><th>Est. Cost</th></tr></thead>
+      <tbody>${items.map(i=>`<tr><td>${i.dish}</td><td>${i.quantity}</td><td>${i.raw_cost}</td></tr>`).join('')}</tbody>
+    </table>`;
+  }
+  document.getElementById('shoppingModalBody').innerHTML = html;
+}
+
+async function downloadPDF() {
+  const btn = document.getElementById('pdfBtn');
+  btn.disabled=true; btn.innerHTML='<div class="sbp-spinner"></div> Generating...';
+  try {
+    const res = await fetch(`/api/reports/event/${eventId}/pdf/`, { headers:{'Authorization':'Bearer '+getToken()} });
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download=`buffet_plan_${eventId}.pdf`; a.click();
+      URL.revokeObjectURL(url);
+    }
+  } finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-file-pdf"></i> Download PDF'; }
+}
+
+loadResults();
+</script>
+{% endblock %}

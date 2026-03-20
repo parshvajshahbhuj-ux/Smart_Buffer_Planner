@@ -1,0 +1,392 @@
+{% extends 'base.html' %}
+{% block title %}Create Event - Smart Buffer Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-section { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-blush); }
+.form-section-title { font-family: var(--font-display); font-size: 1rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-grid-2 .full { grid-column: 1 / -1; }
+.input-group-sbp { display: flex; }
+.input-group-sbp .sbp-input { border-radius: 12px 0 0 12px; }
+.input-group-sbp .ig-addon { background: var(--color-blush); border: 2px solid var(--color-blush); border-left: none; border-radius: 0 12px 12px 0; padding: 0 1rem; display: flex; align-items: center; font-size: 0.9rem; color: var(--color-sage); font-weight: 600; }
+.input-group-sbp-pre .sbp-input { border-radius: 0 12px 12px 0; }
+.input-group-sbp-pre .ig-addon { border-right: none; border-left: 2px solid var(--color-blush); border-radius: 12px 0 0 12px; }
+@media (max-width: 600px) { .form-grid-2 { grid-template-columns: 1fr; } .form-grid-2 .full { grid-column: 1; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div style="max-width:800px;margin:0 auto;padding:0 5%">
+    <div style="display:flex;align-items:center;gap:1rem">
+      <a href="/dashboard/" class="btn-sbp btn-sbp-ghost btn-sbp-sm"><i class="fas fa-arrow-left"></i></a>
+      <div>
+        <h1>Create New Event</h1>
+        <p id="roleTagline">Fill in your event details</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:800px;margin:0 auto;padding:0 5% 3rem">
+  <div style="margin-bottom:1rem" id="roleBadgeArea"></div>
+
+  <div class="sbp-card">
+    <div class="sbp-card-body">
+      <div id="alertBox" style="display:none"></div>
+      <form id="eventForm">
+
+        <div class="form-grid-2">
+          <div class="full">
+            <label class="sbp-label">Event Name <span style="color:var(--color-terracotta)">*</span></label>
+            <input type="text" class="sbp-input" id="name" placeholder="e.g. Sarah's Wedding Reception" required />
+          </div>
+          <div>
+            <label class="sbp-label">Event Type <span style="color:var(--color-terracotta)">*</span></label>
+            <select class="sbp-select" id="event_type" required>
+              <option value="">Select type...</option>
+              <option value="wedding">Wedding</option>
+              <option value="birthday">Birthday</option>
+              <option value="corporate">Corporate</option>
+              <option value="festival">Festival</option>
+              <option value="social">Social Gathering</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="sbp-label">Event Date <span style="color:var(--color-terracotta)">*</span></label>
+            <input type="date" class="sbp-input" id="event_date" required />
+          </div>
+          <div>
+            <label class="sbp-label">Guest Count <span style="color:var(--color-terracotta)">*</span></label>
+            <div class="sbp-input-icon">
+              <i class="fas fa-users icon"></i>
+              <input type="number" class="sbp-input" id="guest_count" min="1" max="10000" placeholder="100" required />
+            </div>
+          </div>
+          <div>
+            <label class="sbp-label">Safety Buffer %</label>
+            <div class="input-group-sbp">
+              <input type="number" class="sbp-input" id="buffer_percentage" value="10" min="0" max="50" />
+              <span class="ig-addon">%</span>
+            </div>
+          </div>
+          <div class="full">
+            <label class="sbp-label">Venue <span style="color:var(--color-sage);font-weight:400;text-transform:none;font-size:0.75rem">(optional — select to load venue's menu)</span></label>
+            <div style="position:relative">
+              <div class="sbp-input-icon">
+                <i class="fas fa-map-marker-alt icon"></i>
+                <input type="text" class="sbp-input" id="venueSearch" placeholder="Search hotel by name or city (e.g. Taj Mumbai)..." autocomplete="off" oninput="searchVenues(this.value)" />
+              </div>
+              <div id="venueDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:2px solid var(--color-blush);border-radius:12px;z-index:100;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.1);margin-top:4px"></div>
+            </div>
+            <input type="hidden" id="venue_ref" />
+            <div id="venueSelected" style="display:none;margin-top:0.5rem;padding:0.5rem 0.85rem;background:var(--color-cream);border-radius:8px;font-size:0.85rem;display:flex;align-items:center;gap:0.5rem">
+              <i class="fas fa-check-circle" style="color:var(--color-sage)"></i>
+              <span id="venueSelectedName"></span>
+              <button type="button" onclick="clearVenue()" style="background:none;border:none;color:var(--color-terracotta);cursor:pointer;margin-left:auto;font-size:0.8rem"><i class="fas fa-times"></i> Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seasonal tip -->
+        <div id="seasonalTip" style="display:none" class="sbp-alert sbp-alert-warning" style="margin-top:1rem">
+          <i class="fas fa-sun"></i><span id="seasonalTipText"></span>
+        </div>
+
+        <!-- ORGANIZER fields -->
+        <div id="organizerFields" style="display:none" class="form-section">
+          <div class="form-section-title" style="color:#4e79a7"><i class="fas fa-user-tie"></i>Client & RSVP Details</div>
+          <div class="form-grid-2">
+            <div>
+              <label class="sbp-label">Client Name</label>
+              <input type="text" class="sbp-input" id="client_name" placeholder="Client full name" />
+            </div>
+            <div>
+              <label class="sbp-label">Client Email</label>
+              <input type="email" class="sbp-input" id="client_email" placeholder="client@email.com" />
+            </div>
+            <div>
+              <label class="sbp-label">Client Phone</label>
+              <input type="tel" class="sbp-input" id="client_phone" placeholder="+1 234 567 8900" />
+            </div>
+            <div>
+              <label class="sbp-label">Confirmed RSVPs</label>
+              <input type="number" class="sbp-input" id="confirmed_guests" min="0" placeholder="0" />
+              <small style="color:var(--color-sage);font-size:0.8rem">Leave blank if not yet confirmed</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- CATERER fields -->
+        <div id="catererFields" style="display:none" class="form-section">
+          <div class="form-section-title" style="color:var(--color-sage)"><i class="fas fa-store"></i>Pricing & Markup</div>
+          <div class="form-grid-2">
+            <div>
+              <label class="sbp-label">Markup % <span style="color:var(--color-sage);font-weight:400;text-transform:none;font-size:0.75rem">(overrides profile default)</span></label>
+              <div class="input-group-sbp">
+                <input type="number" class="sbp-input" id="markup_percentage" min="0" max="200" placeholder="e.g. 25" />
+                <span class="ig-addon">%</span>
+              </div>
+            </div>
+            <div>
+              <label class="sbp-label">Service Charge % <span style="color:var(--color-sage);font-weight:400;text-transform:none;font-size:0.75rem">(overrides profile default)</span></label>
+              <div class="input-group-sbp">
+                <input type="number" class="sbp-input" id="event_service_charge" min="0" max="50" placeholder="e.g. 5" />
+                <span class="ig-addon">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- INDIVIDUAL fields -->
+        <div id="individualFields" style="display:none" class="form-section">
+          <div class="form-section-title" style="color:var(--color-terracotta)"><i class="fas fa-wallet"></i>Personal Budget</div>
+          <div style="max-width:300px">
+            <label class="sbp-label">Budget Cap <span style="color:var(--color-sage);font-weight:400;text-transform:none;font-size:0.75rem">(optional)</span></label>
+            <div class="input-group-sbp input-group-sbp-pre">
+              <span class="ig-addon">$</span>
+              <input type="number" class="sbp-input" id="personal_budget" min="0" placeholder="e.g. 500" />
+            </div>
+            <small style="color:var(--color-sage);font-size:0.8rem">You'll get a warning if your menu exceeds this</small>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:1rem;margin-top:2rem">
+          <button type="submit" class="btn-sbp btn-sbp-primary" id="submitBtn" style="flex:1;justify-content:center;padding:0.9rem">
+            <i class="fas fa-arrow-right"></i> Continue to Menu Selection
+          </button>
+          <a href="/dashboard/" class="btn-sbp btn-sbp-outline">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+requireAuth();
+const user = getUser();
+const role = user?.role || 'organizer';
+
+const badges = {
+  organizer: ['badge-blue','fa-user-tie','Event Organizer','Manage client details and RSVP tracking'],
+  caterer:   ['badge-sage','fa-store','Caterer','Set per-event markup and service charges'],
+  individual:['badge-terracotta','fa-user','Individual','Set a personal budget cap for this event'],
+};
+const [bg,icon,label,tagline] = badges[role]||badges.organizer;
+document.getElementById('roleBadgeArea').innerHTML = `<span class="sbp-badge ${bg}"><i class="fas ${icon}"></i> ${label}</span>`;
+document.getElementById('roleTagline').textContent = tagline;
+
+if (role==='organizer') document.getElementById('organizerFields').style.display='';
+if (role==='caterer')   document.getElementById('catererFields').style.display='';
+if (role==='individual') document.getElementById('individualFields').style.display='';
+
+let venueSearchTimer;
+async function searchVenues(q) {
+  clearTimeout(venueSearchTimer);
+  const dd = document.getElementById('venueDropdown');
+  if (!q || q.length < 2) { dd.style.display = 'none'; return; }
+
+  dd.innerHTML = '<div style="padding:0.75rem 1rem;color:var(--color-sage);font-size:0.85rem"><i class="fas fa-spinner fa-spin" style="margin-right:0.4rem"></i>Searching hotels...</div>';
+  dd.style.display = 'block';
+
+  venueSearchTimer = setTimeout(async () => {
+    try {
+      // 1. Our DB venues (hotels already added)
+      const localData = await apiGet(`/api/menu/venues/?search=${encodeURIComponent(q)}`);
+      const localVenues = (localData?.results || localData || []).map(v => ({
+        id: v.id, name: v.name,
+        address: v.address, city: v.city,
+        subtitle: [v.city, v.address].filter(Boolean).join(' · '),
+        isLocal: true, osm_id: null,
+      }));
+
+      // 2. Nominatim — hotels only (amenity=hotel OR tourism=hotel)
+      const osmRes = await fetch(
+        `https://nominatim.openstreetmap.org/search` +
+        `?q=${encodeURIComponent(q + ' hotel')}` +
+        `&format=json&limit=7&addressdetails=1&countrycodes=in`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
+      const osmData = await osmRes.json();
+
+      // Filter to only hotel/resort/banquet type results
+      const hotelTypes = ['hotel', 'motel', 'hostel', 'guest_house', 'resort', 'banquet_hall', 'conference_centre'];
+      const osmVenues = osmData
+        .filter(p => p.name && (
+          hotelTypes.includes(p.type) ||
+          hotelTypes.includes(p.class) ||
+          /hotel|resort|inn|palace|grand|banquet|suites|lodge/i.test(p.name)
+        ))
+        .map(p => {
+          const addr = p.address || {};
+          const city = addr.city || addr.town || addr.village || addr.county || '';
+          const road = addr.road || addr.suburb || '';
+          return {
+            id: null,
+            name: p.name,
+            address: road,
+            city: city,
+            subtitle: [road, city].filter(Boolean).join(', ') || p.display_name.split(',').slice(0,3).join(','),
+            isLocal: false,
+            osm_id: p.osm_id,
+          };
+        });
+
+      // Merge — DB first, then OSM, deduplicate by name
+      const seen = new Set(localVenues.map(v => v.name.toLowerCase()));
+      const osmFiltered = osmVenues.filter(v => !seen.has(v.name.toLowerCase()));
+      const all = [...localVenues, ...osmFiltered].slice(0, 8);
+
+      if (!all.length) {
+        dd.innerHTML = '<div style="padding:0.75rem 1rem;color:var(--color-sage);font-size:0.85rem">No hotels found. Try a different name or city.</div>';
+        return;
+      }
+
+      // Store in window so onclick can reference by index safely
+      window._venueResults = all;
+
+      dd.innerHTML = all.map((v, i) => `
+        <div onclick="selectVenue(${i})"
+             style="padding:0.75rem 1rem;cursor:pointer;border-bottom:1px solid var(--color-blush);font-size:0.88rem;display:flex;align-items:flex-start;gap:0.6rem"
+             onmouseover="this.style.background='var(--color-cream)'" onmouseout="this.style.background='white'">
+          <span style="margin-top:2px;font-size:1rem">🏨</span>
+          <div style="min-width:0">
+            <div style="font-weight:600;display:flex;align-items:center;gap:0.4rem">
+              ${v.name}
+              ${v.isLocal
+                ? '<span style="background:#e8f0e9;color:var(--color-sage);border-radius:4px;padding:1px 6px;font-size:0.68rem;font-weight:700;flex-shrink:0">✓ Has Menu</span>'
+                : '<span style="background:#fef3ee;color:var(--color-terracotta);border-radius:4px;padding:1px 6px;font-size:0.68rem;font-weight:700;flex-shrink:0">Auto Menu</span>'}
+            </div>
+            <div style="color:var(--color-sage);font-size:0.75rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.subtitle}</div>
+          </div>
+        </div>`).join('');
+      dd.style.display = 'block';
+    } catch(err) {
+      dd.innerHTML = '<div style="padding:0.75rem 1rem;color:var(--color-sage);font-size:0.85rem">Search unavailable. Try again.</div>';
+    }
+  }, 450);
+}
+
+async function selectVenue(idx) {
+  const v = window._venueResults[idx];
+  if (!v) return;
+  const dd = document.getElementById('venueDropdown');
+  dd.style.display = 'none';
+  document.getElementById('venueSearch').value = v.name;
+
+  if (v.isLocal) {
+    // Already in DB — use directly
+    document.getElementById('venue_ref').value = v.id;
+    _showVenueSelected(v.name, v.subtitle, true);
+    return;
+  }
+
+  // OSM hotel — auto-create in DB with smart default menu
+  _showVenueSelected(v.name, 'Creating menu...', false);
+  try {
+    const res = await fetch('/api/menu/venues/from_osm/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+      body: JSON.stringify({ name: v.name, address: v.address, city: v.city, osm_id: v.osm_id })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById('venue_ref').value = data.id;
+      _showVenueSelected(v.name, v.subtitle + (data.created ? ' · Menu auto-assigned ✓' : ' · Menu loaded ✓'), true);
+    } else {
+      _showVenueSelected(v.name, v.subtitle + ' · (no venue menu)', false);
+    }
+  } catch {
+    _showVenueSelected(v.name, v.subtitle + ' · (no venue menu)', false);
+  }
+}
+
+function _showVenueSelected(name, subtitle, success) {
+  const sel = document.getElementById('venueSelected');
+  sel.style.display = 'flex';
+  sel.style.background = success ? 'var(--color-cream)' : '#fff8f5';
+  document.getElementById('venueSelectedName').innerHTML =
+    `<strong>${name}</strong><span style="color:var(--color-sage);font-size:0.8rem;margin-left:0.4rem">${subtitle}</span>`;
+}
+
+function clearVenue() {
+  document.getElementById('venue_ref').value = '';
+  document.getElementById('venueSearch').value = '';
+  document.getElementById('venueSelected').style.display = 'none';
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#venueSearch') && !e.target.closest('#venueDropdown')) {
+    document.getElementById('venueDropdown').style.display = 'none';
+  }
+});
+
+document.getElementById('event_date').addEventListener('change', function() {
+  const month = new Date(this.value).getMonth()+1;
+  const tip = document.getElementById('seasonalTip');
+  const msgs = {
+    summer: [3,4,5,6], monsoon: [7,8,9], winter: [10,11,12,1,2]
+  };
+  let text = '';
+  if (msgs.summer.includes(month)) text = '☀️ Summer event! Consider lighter dishes, cold beverages, and salads.';
+  else if (msgs.monsoon.includes(month)) text = '🌧️ Monsoon season! Warm soups, hot beverages, and comfort foods work great.';
+  else text = '❄️ Winter event! Rich, hearty dishes and warm beverages are popular.';
+  document.getElementById('seasonalTipText').textContent = text;
+  tip.style.display = 'flex';
+});
+
+document.getElementById('eventForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="sbp-spinner"></div> Creating...';
+
+  const payload = {
+    name: document.getElementById('name').value,
+    event_type: document.getElementById('event_type').value,
+    event_date: document.getElementById('event_date').value,
+    guest_count: parseInt(document.getElementById('guest_count').value),
+    buffer_percentage: parseFloat(document.getElementById('buffer_percentage').value),
+    venue: document.getElementById('venueSearch').value,
+  };
+  const venueRef = document.getElementById('venue_ref').value;
+  if (venueRef) payload.venue_ref = parseInt(venueRef);
+  if (role==='organizer') {
+    payload.client_name = document.getElementById('client_name').value;
+    payload.client_email = document.getElementById('client_email').value;
+    payload.client_phone = document.getElementById('client_phone').value;
+    const rsvp = document.getElementById('confirmed_guests').value;
+    if (rsvp) payload.confirmed_guests = parseInt(rsvp);
+  }
+  if (role==='caterer') {
+    const mu = document.getElementById('markup_percentage').value;
+    const sc = document.getElementById('event_service_charge').value;
+    if (mu) payload.markup_percentage = parseFloat(mu);
+    if (sc) payload.service_charge = parseFloat(sc);
+  }
+  if (role==='individual') {
+    const pb = document.getElementById('personal_budget').value;
+    if (pb) payload.personal_budget = parseFloat(pb);
+  }
+
+  const res = await fetch('/api/events/', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','Authorization':'Bearer '+getToken()},
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (res.ok) {
+    window.location.href = `/events/${data.id}/menu/`;
+  } else {
+    const errors = Object.entries(data).map(([k,v])=>`${k}: ${[].concat(v).join(', ')}`).join('<br>');
+    showAlert('alertBox', errors, 'danger');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-arrow-right"></i> Continue to Menu Selection';
+  }
+});
+</script>
+{% endblock %}

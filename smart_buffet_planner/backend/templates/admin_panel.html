@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+{% block title %}Admin Panel - Smart Buffer Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+.form-grid-2 .full, .form-grid-3 .full { grid-column: 1 / -1; }
+.cat-card { background: white; border-radius: 16px; padding: 1.5rem; text-align: center; border: 1px solid rgba(26,26,26,0.06); box-shadow: 0 4px 20px rgba(26,26,26,0.05); transition: transform 0.2s; }
+.cat-card:hover { transform: translateY(-3px); }
+.cat-icon { width: 52px; height: 52px; border-radius: 14px; background: var(--color-blush); color: var(--color-terracotta); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin: 0 auto 0.75rem; }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; padding: 1rem; }
+.modal-box { background: white; border-radius: 24px; max-width: 680px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal-header { padding: 1.5rem; border-bottom: 1px solid var(--color-blush); display: flex; justify-content: space-between; align-items: center; }
+.modal-header h5 { font-family: var(--font-display); font-weight: 700; margin: 0; font-size: 1.2rem; }
+.modal-body { padding: 1.5rem; }
+.modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--color-blush); display: flex; justify-content: flex-end; gap: 0.75rem; }
+.sbp-checkbox { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+.sbp-checkbox input { width: 18px; height: 18px; accent-color: var(--color-terracotta); cursor: pointer; }
+@media (max-width: 600px) { .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; } .form-grid-2 .full, .form-grid-3 .full { grid-column: 1; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div style="max-width:1200px;margin:0 auto;padding:0 5%">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
+      <div>
+        <h1>Admin Panel</h1>
+        <p>Manage dishes, categories, and view all events</p>
+      </div>
+      <button class="btn-sbp btn-sbp-primary" onclick="openDishModal()"><i class="fas fa-plus"></i> Add Dish</button>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:1200px;margin:0 auto;padding:0 5% 3rem">
+  <div id="alertBox" style="display:none;margin-bottom:1rem"></div>
+
+  <div class="sbp-tabs">
+    <button class="sbp-tab active" onclick="showTab('dishes')"><i class="fas fa-utensils" style="margin-right:0.4rem"></i>Dishes</button>
+    <button class="sbp-tab" onclick="showTab('categories')"><i class="fas fa-tags" style="margin-right:0.4rem"></i>Categories</button>
+    <button class="sbp-tab" onclick="showTab('events')"><i class="fas fa-calendar" style="margin-right:0.4rem"></i>All Events</button>
+  </div>
+
+  <!-- Dishes Tab -->
+  <div id="tab-dishes">
+    <div class="sbp-card">
+      <div style="overflow-x:auto">
+        <table class="sbp-table">
+          <thead><tr><th>Name</th><th>Category</th><th>Qty/Person</th><th>Unit</th><th>Cost/Unit</th><th>Prep</th><th>Season</th><th>Veg</th><th>Actions</th></tr></thead>
+          <tbody id="dishesBody">
+            <tr><td colspan="9" style="text-align:center;padding:3rem;color:var(--color-sage)"><div class="sbp-spinner sbp-spinner-dark" style="margin:0 auto"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Categories Tab -->
+  <div id="tab-categories" style="display:none">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem" id="categoriesGrid"></div>
+  </div>
+
+  <!-- Events Tab -->
+  <div id="tab-events" style="display:none">
+    <div class="sbp-card">
+      <div style="overflow-x:auto">
+        <table class="sbp-table">
+          <thead><tr><th>Event</th><th>User</th><th>Type</th><th>Date</th><th>Guests</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="allEventsBody">
+            <tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--color-sage)"><div class="sbp-spinner sbp-spinner-dark" style="margin:0 auto"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dish Modal -->
+<div class="modal-overlay" id="dishModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h5 id="dishModalTitle">Add New Dish</h5>
+      <button onclick="closeDishModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--color-sage)">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="dishForm">
+        <input type="hidden" id="dishId" />
+        <div class="form-grid-2" style="margin-bottom:1rem">
+          <div class="full">
+            <label class="sbp-label">Dish Name <span style="color:var(--color-terracotta)">*</span></label>
+            <input type="text" class="sbp-input" id="dName" required />
+          </div>
+          <div>
+            <label class="sbp-label">Category <span style="color:var(--color-terracotta)">*</span></label>
+            <select class="sbp-select" id="dCategory" required></select>
+          </div>
+          <div>
+            <label class="sbp-label">Unit <span style="color:var(--color-terracotta)">*</span></label>
+            <select class="sbp-select" id="dUnit">
+              <option value="grams">Grams</option>
+              <option value="ml">Milliliters</option>
+              <option value="units">Units</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid-3" style="margin-bottom:1rem">
+          <div>
+            <label class="sbp-label">Qty Per Person <span style="color:var(--color-terracotta)">*</span></label>
+            <input type="number" class="sbp-input" id="dQty" step="0.01" min="0" required />
+          </div>
+          <div>
+            <label class="sbp-label">Cost Per Unit ($) <span style="color:var(--color-terracotta)">*</span></label>
+            <input type="number" class="sbp-input" id="dCost" step="0.001" min="0" required />
+          </div>
+          <div>
+            <label class="sbp-label">Prep Time (mins) <span style="color:var(--color-terracotta)">*</span></label>
+            <input type="number" class="sbp-input" id="dPrepTime" min="1" required />
+          </div>
+        </div>
+        <div class="form-grid-2" style="margin-bottom:1rem">
+          <div>
+            <label class="sbp-label">Season</label>
+            <select class="sbp-select" id="dSeason">
+              <option value="all">All Seasons</option>
+              <option value="summer">Summer</option>
+              <option value="winter">Winter</option>
+              <option value="monsoon">Monsoon</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:flex-end;padding-bottom:0.25rem">
+            <label class="sbp-checkbox">
+              <input type="checkbox" id="dVeg" />
+              <span style="font-weight:600;font-size:0.9rem">Vegetarian</span>
+            </label>
+          </div>
+          <div class="full">
+            <label class="sbp-label">Description</label>
+            <textarea class="sbp-input sbp-textarea" id="dDesc" rows="2" style="resize:vertical"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sbp btn-sbp-outline" onclick="closeDishModal()">Cancel</button>
+      <button class="btn-sbp btn-sbp-primary" onclick="saveDish()" id="saveDishBtn"><i class="fas fa-save"></i> Save Dish</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+requireAuth(true);
+let categories = [];
+
+async function loadDishes() {
+  const data = await apiGet('/api/menu/dishes/?page_size=100');
+  const dishes = data?.results || data || [];
+  const tbody = document.getElementById('dishesBody');
+  if (!dishes.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--color-sage)">No dishes found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = dishes.map(d => `
+    <tr>
+      <td style="font-weight:600">${d.name}</td>
+      <td><span class="sbp-badge badge-charcoal">${d.category?.name||d.category}</span></td>
+      <td>${d.quantity_per_person}</td>
+      <td>${d.unit}</td>
+      <td>$${d.cost_per_unit}</td>
+      <td>${d.preparation_time}m</td>
+      <td><span class="sbp-badge badge-gold">${d.season}</span></td>
+      <td>${d.is_vegetarian?'<span class="sbp-badge badge-sage"><i class="fas fa-leaf"></i> Veg</span>':'<span class="sbp-badge badge-terracotta">Non-veg</span>'}</td>
+      <td style="display:flex;gap:0.4rem">
+        <button class="btn-sbp btn-sbp-ghost btn-sbp-sm" onclick="editDish(${d.id})"><i class="fas fa-edit"></i></button>
+        <button class="btn-sbp btn-sbp-danger btn-sbp-sm" onclick="deleteDish(${d.id})"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>`).join('');
+}
+
+async function loadCategories() {
+  const data = await apiGet('/api/menu/categories/');
+  categories = data?.results || data || [];
+  document.getElementById('dCategory').innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('categoriesGrid').innerHTML = categories.map(c => `
+    <div class="cat-card">
+      <div class="cat-icon"><i class="fas fa-tag"></i></div>
+      <h6 style="font-family:var(--font-display);font-weight:700;margin-bottom:0.25rem">${c.name}</h6>
+      <small style="color:var(--color-sage)">${c.dish_count||0} dishes</small>
+    </div>`).join('');
+}
+
+async function loadAllEvents() {
+  const data = await apiGet('/api/events/');
+  const events = data?.results || data || [];
+  const statusBadge = s => ({draft:'badge-charcoal',planned:'badge-sage',completed:'badge-gold'}[s]||'badge-charcoal');
+  document.getElementById('allEventsBody').innerHTML = events.length ? events.map(e => `
+    <tr>
+      <td style="font-weight:600">${e.name}</td>
+      <td style="color:var(--color-sage);font-size:0.85rem">${e.user||'—'}</td>
+      <td>${e.event_type}</td>
+      <td style="color:var(--color-sage)">${e.event_date}</td>
+      <td>${e.guest_count}</td>
+      <td><span class="sbp-badge ${statusBadge(e.status)}">${e.status}</span></td>
+      <td><a href="/events/${e.id}/result/" class="btn-sbp btn-sbp-ghost btn-sbp-sm"><i class="fas fa-eye"></i></a></td>
+    </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--color-sage)">No events.</td></tr>';
+}
+
+function showTab(tab) {
+  ['dishes','categories','events'].forEach(t => {
+    document.getElementById(`tab-${t}`).style.display = t===tab?'':'none';
+  });
+  document.querySelectorAll('.sbp-tab').forEach((btn,i) => {
+    btn.classList.toggle('active', ['dishes','categories','events'][i]===tab);
+  });
+  if (tab==='events') loadAllEvents();
+}
+
+function openDishModal(dish=null) {
+  document.getElementById('dishModalTitle').textContent = dish ? 'Edit Dish' : 'Add New Dish';
+  document.getElementById('dishId').value = dish?.id||'';
+  document.getElementById('dName').value = dish?.name||'';
+  document.getElementById('dCategory').value = dish?.category?.id||dish?.category||'';
+  document.getElementById('dQty').value = dish?.quantity_per_person||'';
+  document.getElementById('dUnit').value = dish?.unit||'grams';
+  document.getElementById('dCost').value = dish?.cost_per_unit||'';
+  document.getElementById('dPrepTime').value = dish?.preparation_time||'';
+  document.getElementById('dSeason').value = dish?.season||'all';
+  document.getElementById('dVeg').checked = dish?.is_vegetarian||false;
+  document.getElementById('dDesc').value = dish?.description||'';
+  document.getElementById('dishModal').style.display = 'flex';
+}
+
+function closeDishModal() { document.getElementById('dishModal').style.display = 'none'; }
+
+async function editDish(id) {
+  const dish = await apiGet(`/api/menu/dishes/${id}/`);
+  if (dish) openDishModal(dish);
+}
+
+async function saveDish() {
+  const id = document.getElementById('dishId').value;
+  const payload = {
+    name: document.getElementById('dName').value,
+    category: document.getElementById('dCategory').value,
+    quantity_per_person: document.getElementById('dQty').value,
+    unit: document.getElementById('dUnit').value,
+    cost_per_unit: document.getElementById('dCost').value,
+    preparation_time: document.getElementById('dPrepTime').value,
+    season: document.getElementById('dSeason').value,
+    is_vegetarian: document.getElementById('dVeg').checked,
+    description: document.getElementById('dDesc').value,
+  };
+  const url = id ? `/api/menu/dishes/${id}/` : '/api/menu/dishes/';
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(url, { method, headers: {'Content-Type':'application/json','Authorization':'Bearer '+getToken()}, body: JSON.stringify(payload) });
+  if (res.ok) {
+    closeDishModal();
+    showAlert('alertBox', `Dish ${id?'updated':'created'} successfully!`, 'success');
+    loadDishes();
+  } else {
+    const err = await res.json();
+    showAlert('alertBox', JSON.stringify(err), 'danger');
+  }
+}
+
+async function deleteDish(id) {
+  if (!confirm('Delete this dish?')) return;
+  const res = await fetch(`/api/menu/dishes/${id}/`, { method:'DELETE', headers:{'Authorization':'Bearer '+getToken()} });
+  if (res.ok||res.status===204) { showAlert('alertBox','Dish deleted.','success'); loadDishes(); }
+}
+
+loadDishes();
+loadCategories();
+</script>
+{% endblock %}

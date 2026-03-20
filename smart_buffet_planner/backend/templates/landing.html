@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Buffer Planner - Plan Smart, Waste Less</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-cream: #F9F6F0;
+            --color-terracotta: #C75B39;
+            --color-sage: #5A6B5C;
+            --color-charcoal: #1A1A1A;
+            --color-gold: #D4A574;
+            --color-blush: #F4E7E0;
+            --font-display: 'Playfair Display', serif;
+            --font-body: 'Space Grotesk', sans-serif;
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--color-cream);
+            color: var(--color-charcoal);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Grain Texture Overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 1.5rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            mix-blend-mode: difference;
+            color: white;
+        }
+
+        .logo {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: inherit;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            position: relative;
+            padding: 0.5rem 0;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: currentColor;
+            transition: width 0.3s var(--ease-out-expo);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 6rem 10% 4rem 15%;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--color-blush);
+            color: var(--color-terracotta);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            width: fit-content;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: slideUp 0.8s var(--ease-out-expo) forwards;
+        }
+
+        .hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(3rem, 6vw, 5.5rem);
+            font-weight: 900;
+            line-height: 1.05;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.03em;
+            transform: translateY(30px);
+            opacity: 0;
+            animation: slideUp 0.8s 0.1s var(--ease-out-expo) forwards;
+        }
+
+        .hero h1 span {
+            color: var(--color-terracotta);
+            display: block;
+            font-style: italic;
+            font-weight: 400;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            max-width: 480px;
+            margin-bottom: 3rem;
+            color: var(--color-sage);
+            font-weight: 300;
+            transform: translateY(30px);
+            opacity: 0;
+            animation: slideUp 0.8s 0.2s var(--ease-out-expo) forwards;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+            transform: translateY(30px);
+            opacity: 0;
+            animation: slideUp 0.8s 0.3s var(--ease-out-expo) forwards;
+        }
+
+        .btn {
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s var(--ease-elastic);
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--color-terracotta);
+            color: white;
+            border: 2px solid var(--color-terracotta);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(199, 91, 57, 0.5);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--color-charcoal);
+            border: 2px solid var(--color-charcoal);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-charcoal);
+            color: var(--color-cream);
+            transform: translateY(-2px);
+        }
+
+        /* Hero Visual */
+        .hero-visual {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .blob {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            background: linear-gradient(135deg, var(--color-blush) 0%, var(--color-gold) 100%);
+            border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+            animation: morph 8s ease-in-out infinite;
+            opacity: 0.6;
+        }
+
+        .floating-card {
+            position: absolute;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px -20px rgba(0,0,0,0.1);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .floating-card:nth-child(2) {
+            top: 20%;
+            right: 15%;
+            animation-delay: -2s;
+        }
+
+        .floating-card:nth-child(3) {
+            bottom: 25%;
+            left: 10%;
+            animation-delay: -4s;
+        }
+
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-terracotta);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--color-sage);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* Diagonal Divider */
+        .diagonal-divider {
+            height: 150px;
+            background: var(--color-cream);
+            position: relative;
+            z-index: 10;
+        }
+
+        .diagonal-divider::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 0;
+            width: 100%;
+            height: 150px;
+            background: var(--color-cream);
+            clip-path: polygon(0 100%, 100% 0, 100% 100%);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 6rem 5%;
+            background: var(--color-charcoal);
+            color: var(--color-cream);
+            position: relative;
+        }
+
+        .features-header {
+            max-width: 800px;
+            margin-bottom: 5rem;
+        }
+
+        .features h2 {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .features > h2 span {
+            color: var(--color-gold);
+            font-style: italic;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            position: relative;
+        }
+
+        .feature-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 3rem 2rem;
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s var(--ease-out-expo);
+            cursor: pointer;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(212, 165, 116, 0.1) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(212, 165, 116, 0.3);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+            transition: transform 0.3s var(--ease-elastic);
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1) rotate(-5deg);
+        }
+
+        .feature-card h3 {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .feature-card p {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        /* How it Works - Horizontal Scroll */
+        .process {
+            padding: 8rem 5%;
+            background: var(--color-cream);
+            overflow: hidden;
+        }
+
+        .process-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .process h2 {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            text-align: center;
+            margin-bottom: 6rem;
+            letter-spacing: -0.02em;
+        }
+
+        .process-grid {
+            display: flex;
+            gap: 4rem;
+            position: relative;
+        }
+
+        .process-step {
+            flex: 1;
+            position: relative;
+            padding: 2rem;
+        }
+
+        .step-number {
+            font-family: var(--font-display);
+            font-size: 8rem;
+            font-weight: 900;
+            color: transparent;
+            -webkit-text-stroke: 1px var(--color-terracotta);
+            line-height: 1;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+            transition: all 0.3s;
+        }
+
+        .process-step:hover .step-number {
+            opacity: 1;
+            color: var(--color-terracotta);
+            -webkit-text-stroke: 0;
+        }
+
+        .step-content h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .step-content p {
+            color: var(--color-sage);
+            font-size: 1rem;
+            line-height: 1.8;
+        }
+
+        .connector {
+            position: absolute;
+            top: 5rem;
+            right: -2rem;
+            width: 4rem;
+            height: 2px;
+            background: repeating-linear-gradient(90deg, var(--color-gold) 0, var(--color-gold) 10px, transparent 10px, transparent 20px);
+        }
+
+        /* CTA Section */
+        .cta {
+            padding: 10rem 5%;
+            background: var(--color-terracotta);
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+
+        .cta h2 {
+            font-family: var(--font-display);
+            font-size: clamp(3rem, 6vw, 5rem);
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.03em;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta p {
+            font-size: 1.25rem;
+            max-width: 600px;
+            margin: 0 auto 3rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-white {
+            background: white;
+            color: var(--color-terracotta);
+            border: 2px solid white;
+            font-size: 1.1rem;
+            padding: 1.2rem 3rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-white:hover {
+            background: transparent;
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.2);
+        }
+
+        /* Animations */
+        @keyframes slideUp {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes morph {
+            0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+            50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(2deg); }
+        }
+
+        /* Reveal on Scroll */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s var(--ease-out-expo);
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
+            
+            .hero-visual {
+                display: none;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .process-grid {
+                flex-direction: column;
+                gap: 2rem;
+            }
+            
+            .connector {
+                display: none;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            footer > div > div:first-child {
+                grid-template-columns: 1fr 1fr !important;
+            }
+        }
+        @media (max-width: 420px) {
+            footer > div > div:first-child {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo">Smart Buffer Planner</div>
+        <ul class="nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#process">How It Works</a></li>
+            <li><a href="/login/">Login</a></li>
+        </ul>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span>🍽️</span>
+                <span>Intelligent Catering Solutions</span>
+            </div>
+            <h1>
+                Plan Smart,
+                <span>Waste Less</span>
+            </h1>
+            <p>Intelligently plan buffet quantities, estimate catering budgets, and reduce food wastage using predictive calculation logic.</p>
+            <div class="hero-cta">
+                <a href="/register/" class="btn btn-primary">Get Started Free →</a>
+                <a href="/login/" class="btn btn-secondary">Login</a>
+            </div>
+        </div>
+        <div class="hero-visual">
+            <div class="blob"></div>
+            <div class="floating-card">
+                <div class="stat-number">85%</div>
+                <div class="stat-label">Less Waste</div>
+            </div>
+            <div class="floating-card">
+                <div class="stat-number">2.4k</div>
+                <div class="stat-label">Events Planned</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="diagonal-divider"></div>
+
+    <section class="features" id="features">
+        <div class="features-header reveal">
+            <h2>Everything you need to run a <span>perfect</span> buffet event</h2>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-card reveal">
+                <div class="feature-icon">🧮</div>
+                <h3>Smart Quantity Calculator</h3>
+                <p>Auto-calculates total quantities with safety buffer based on guest count and dish type.</p>
+            </div>
+            
+            <div class="feature-card reveal">
+                <div class="feature-icon">📊</div>
+                <h3>Analytics Dashboard</h3>
+                <p>Visual charts for category distribution, cost breakdown, and waste risk indicators.</p>
+            </div>
+            
+            <div class="feature-card reveal">
+                <div class="feature-icon">🌱</div>
+                <h3>Waste Reduction</h3>
+                <p>Predictive waste estimation helps you order just the right amount — saving money and food.</p>
+            </div>
+            
+            <div class="feature-card reveal">
+                <div class="feature-icon">📄</div>
+                <h3>PDF Reports</h3>
+                <p>Download professional buffet planning reports with full cost and quantity breakdowns.</p>
+            </div>
+            
+            <div class="feature-card reveal">
+                <div class="feature-icon">🧠</div>
+                <h3>AI Predictions</h3>
+                <p>Learns from past events to suggest optimal quantities for future planning.</p>
+            </div>
+            
+            <div class="feature-card reveal">
+                <div class="feature-icon">☀️</div>
+                <h3>Seasonal Suggestions</h3>
+                <p>Get smart dish recommendations based on the season of your event.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="process" id="process">
+        <div class="process-container">
+            <h2 class="reveal">How It Works</h2>
+            <div class="process-grid">
+                <div class="process-step reveal">
+                    <div class="step-number">01</div>
+                    <div class="step-content">
+                        <h3>Create Event</h3>
+                        <p>Enter event name, type, guest count, and date. Our system analyzes your event parameters.</p>
+                    </div>
+                    <div class="connector"></div>
+                </div>
+                
+                <div class="process-step reveal">
+                    <div class="step-number">02</div>
+                    <div class="step-content">
+                        <h3>Select Menu</h3>
+                        <p>Pick dishes from categorized menu with smart suggestions based on dietary preferences.</p>
+                    </div>
+                    <div class="connector"></div>
+                </div>
+                
+                <div class="process-step reveal">
+                    <div class="step-number">03</div>
+                    <div class="step-content">
+                        <h3>Get Results</h3>
+                        <p>Instant calculations, analytics, and downloadable PDF report with shopping lists.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta">
+        <div class="cta-pattern"></div>
+        <h2 class="reveal">Ready to Plan Your<br>Perfect Buffet?</h2>
+        <p class="reveal">Join thousands of event planners who trust Smart Buffer Planner.</p>
+        <a href="/register/" class="btn btn-white reveal">Create Free Account →</a>
+    </section>
+
+    <!-- MODALS -->
+    <div id="modal-overlay" onclick="closeModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9000;backdrop-filter:blur(4px)"></div>
+
+    <div id="modal-box" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.95);z-index:9001;background:#fff;border-radius:24px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,0.25);opacity:0;transition:transform 0.25s cubic-bezier(0.16,1,0.3,1),opacity 0.25s">
+      <div style="padding:2rem 2rem 0;display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div id="modal-icon" style="font-size:2rem;margin-bottom:0.5rem"></div>
+          <h3 id="modal-title" style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:#1A1A1A"></h3>
+        </div>
+        <button onclick="closeModal()" style="background:#F4E7E0;border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:1.2rem;color:#1A1A1A;flex-shrink:0;margin-left:1rem;line-height:1">&times;</button>
+      </div>
+      <div id="modal-body" style="padding:1.25rem 2rem 2rem;color:#555;font-size:0.95rem;line-height:1.75"></div>
+    </div>
+
+    <style>
+      .footer-link {
+        background: none; border: none; cursor: pointer; padding: 0;
+        color: rgba(249,246,240,0.6); font-size: 0.88rem;
+        font-family: 'Space Grotesk', sans-serif;
+        text-align: left; transition: color 0.2s;
+      }
+      .footer-link:hover { color: #F9F6F0; }
+      .modal-cta {
+        display: inline-block; margin-top: 1.25rem; padding: 0.75rem 1.75rem;
+        background: #C75B39; color: white; border-radius: 50px;
+        text-decoration: none; font-weight: 600; font-size: 0.9rem;
+        transition: background 0.2s;
+      }
+      .modal-cta:hover { background: #a8472a; }
+      .modal-tag {
+        display: inline-block; background: #F4E7E0; color: #C75B39;
+        border-radius: 50px; padding: 0.25rem 0.75rem; font-size: 0.78rem;
+        font-weight: 600; margin-bottom: 0.75rem;
+      }
+    </style>
+
+    <footer style="background:#1A1A1A;color:#F9F6F0;padding:4rem 5% 2rem">
+      <div style="max-width:1200px;margin:0 auto">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:3rem;margin-bottom:3rem">
+
+          <!-- Brand -->
+          <div>
+            <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;margin-bottom:1rem;color:#D4A574">Smart Buffer Planner</div>
+            <p style="color:rgba(249,246,240,0.6);font-size:0.9rem;line-height:1.7;max-width:260px">Plan smarter buffets with AI-powered quantity calculations, zero food waste, and role-based tools for every event professional.</p>
+            <div style="display:flex;gap:0.75rem;margin-top:1.5rem">
+              <button onclick="openModal('twitter')" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:none;display:flex;align-items:center;justify-content:center;color:#F9F6F0;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#C75B39'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557a9.83 9.83 0 0 1-2.828.775 4.932 4.932 0 0 0 2.165-2.724 9.864 9.864 0 0 1-3.127 1.195 4.916 4.916 0 0 0-8.384 4.482C7.691 8.094 4.066 6.13 1.64 3.161a4.822 4.822 0 0 0-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 0 1-2.228-.616v.061a4.923 4.923 0 0 0 3.946 4.827 4.996 4.996 0 0 1-2.212.085 4.937 4.937 0 0 0 4.604 3.417 9.868 9.868 0 0 1-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 0 0 7.557 2.209c9.054 0 13.999-7.496 13.999-13.986 0-.209 0-.42-.015-.63a9.936 9.936 0 0 0 2.46-2.548l-.047-.02z"/></svg>
+              </button>
+              <button onclick="openModal('linkedin')" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:none;display:flex;align-items:center;justify-content:center;color:#F9F6F0;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#C75B39'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+              </button>
+              <button onclick="openModal('github')" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:none;display:flex;align-items:center;justify-content:center;color:#F9F6F0;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#C75B39'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Product -->
+          <div>
+            <div style="font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:700;margin-bottom:1.25rem;color:#D4A574">Product</div>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:0.65rem">
+              <li><button onclick="openModal('features')" class="footer-link">Features</button></li>
+              <li><button onclick="openModal('howitworks')" class="footer-link">How It Works</button></li>
+              <li><button onclick="openModal('getstarted')" class="footer-link">Get Started</button></li>
+              <li><button onclick="openModal('login')" class="footer-link">Login</button></li>
+            </ul>
+          </div>
+
+          <!-- Roles -->
+          <div>
+            <div style="font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:700;margin-bottom:1.25rem;color:#D4A574">For You</div>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:0.65rem">
+              <li><button onclick="openModal('organizer')" class="footer-link">Event Organizers</button></li>
+              <li><button onclick="openModal('caterer')" class="footer-link">Caterers</button></li>
+              <li><button onclick="openModal('individual')" class="footer-link">Individuals</button></li>
+              <li><button onclick="openModal('admin')" class="footer-link">Admin Panel</button></li>
+            </ul>
+          </div>
+
+          <!-- Contact -->
+          <div>
+            <div style="font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:700;margin-bottom:1.25rem;color:#D4A574">Contact</div>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:0.65rem">
+              <li><button onclick="openModal('email')" class="footer-link" style="display:flex;align-items:center;gap:0.5rem">
+                <svg width="13" height="13" fill="#C75B39" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                hello@smartbuffet.in
+              </button></li>
+              <li><button onclick="openModal('location')" class="footer-link" style="display:flex;align-items:center;gap:0.5rem">
+                <svg width="13" height="13" fill="#C75B39" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                Mumbai, India
+              </button></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Bottom bar -->
+        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
+          <p style="color:rgba(249,246,240,0.4);font-size:0.82rem">© 2026 Smart Buffer Planner. All rights reserved.</p>
+          <div style="display:flex;gap:1.5rem">
+            <button onclick="openModal('privacy')" class="footer-link" style="color:rgba(249,246,240,0.4);font-size:0.82rem">Privacy Policy</button>
+            <button onclick="openModal('terms')" class="footer-link" style="color:rgba(249,246,240,0.4);font-size:0.82rem">Terms of Service</button>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+        // Intersection Observer for scroll animations
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    // Add staggered delay for cards
+                    if (entry.target.classList.contains('feature-card')) {
+                        const index = Array.from(entry.target.parentElement.children).indexOf(entry.target);
+                        entry.target.style.transitionDelay = `${index * 0.1}s`;
+                    }
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+
+        // Smooth scroll for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Parallax effect for floating cards
+        document.addEventListener('mousemove', (e) => {
+            const cards = document.querySelectorAll('.floating-card');
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+            
+            cards.forEach((card, index) => {
+                const speed = (index + 1) * 10;
+                const xOffset = (window.innerWidth / 2 - e.clientX) / speed;
+                const yOffset = (window.innerHeight / 2 - e.clientY) / speed;
+                card.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+            });
+        });
+    </script>
+
+
+    <script>
+    const MODALS = {
+      features: {
+        icon: '✨',
+        title: 'Features',
+        body: `<span class="modal-tag">Smart Planning</span>
+          <ul style="padding-left:1.25rem;display:flex;flex-direction:column;gap:0.6rem">
+            <li><strong>AI Quantity Calculator</strong> — auto-computes exact food quantities per guest with a configurable safety buffer.</li>
+            <li><strong>Role-Based Dashboards</strong> — separate views for Organizers, Caterers, and Individuals.</li>
+            <li><strong>Venue-Specific Menus</strong> — link a venue and only that venue's dishes appear for selection.</li>
+            <li><strong>Analytics & Charts</strong> — category distribution, dish quantities, monthly trends.</li>
+            <li><strong>PDF Reports</strong> — download a full buffet plan as a professional PDF.</li>
+            <li><strong>Waste Risk Indicator</strong> — Low / Medium / High waste risk based on buffer %.</li>
+          </ul>
+          <a href="/register/" class="modal-cta">Try It Free →</a>`
+      },
+      howitworks: {
+        icon: '⚙️',
+        title: 'How It Works',
+        body: `<span class="modal-tag">3 Simple Steps</span>
+          <div style="display:flex;flex-direction:column;gap:1rem;margin-top:0.5rem">
+            <div style="display:flex;gap:1rem;align-items:flex-start">
+              <div style="background:#C75B39;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">1</div>
+              <div><strong>Create an Event</strong><br>Enter event name, type, date, guest count, and optionally pick a venue.</div>
+            </div>
+            <div style="display:flex;gap:1rem;align-items:flex-start">
+              <div style="background:#5A6B5C;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">2</div>
+              <div><strong>Select Your Menu</strong><br>Browse dishes by category, filter by veg/non-veg, and pick what you want to serve.</div>
+            </div>
+            <div style="display:flex;gap:1rem;align-items:flex-start">
+              <div style="background:#D4A574;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">3</div>
+              <div><strong>Get Your Plan</strong><br>Instantly see quantities, costs, waste risk, and download a PDF report.</div>
+            </div>
+          </div>
+          <a href="/register/" class="modal-cta">Get Started →</a>`
+      },
+      getstarted: {
+        icon: '🚀',
+        title: 'Get Started Free',
+        body: `<span class="modal-tag">Free Account</span>
+          <p>Create your free account in under a minute. No credit card required.</p>
+          <p style="margin-top:0.75rem">Choose your role during signup:</p>
+          <ul style="padding-left:1.25rem;margin-top:0.5rem;display:flex;flex-direction:column;gap:0.4rem">
+            <li><strong>Event Organizer</strong> — manage client details and RSVPs</li>
+            <li><strong>Caterer</strong> — set markup, service charges, shopping lists</li>
+            <li><strong>Individual</strong> — personal budget tracking</li>
+          </ul>
+          <a href="/register/" class="modal-cta">Create Free Account →</a>`
+      },
+      login: {
+        icon: '🔐',
+        title: 'Login to Your Account',
+        body: `<span class="modal-tag">Existing Users</span>
+          <p>Already have an account? Head to the login page to access your dashboard, events, and analytics.</p>
+          <p style="margin-top:0.75rem;font-size:0.85rem;color:#888">Demo credentials:<br>
+            Caterer: <code>demo@buffet.com</code> / <code>Demo@123</code><br>
+            Admin: <code>admin@buffet.com</code> / <code>Admin@123</code>
+          </p>
+          <a href="/login/" class="modal-cta">Go to Login →</a>`
+      },
+      organizer: {
+        icon: '👔',
+        title: 'For Event Organizers',
+        body: `<span class="modal-tag">Organizer Role</span>
+          <p>Manage every detail of your client's event from one place.</p>
+          <ul style="padding-left:1.25rem;margin-top:0.75rem;display:flex;flex-direction:column;gap:0.5rem">
+            <li>Store client name, email, and phone</li>
+            <li>Track confirmed RSVPs vs planned guest count</li>
+            <li>Mark events as completed</li>
+            <li>Download professional PDF buffet plans to share with clients</li>
+            <li>View RSVP gap — how many guests are still unconfirmed</li>
+          </ul>
+          <a href="/register/" class="modal-cta">Sign Up as Organizer →</a>`
+      },
+      caterer: {
+        icon: '🍽️',
+        title: 'For Caterers',
+        body: `<span class="modal-tag">Caterer Role</span>
+          <p>Run your catering business smarter with built-in pricing tools.</p>
+          <ul style="padding-left:1.25rem;margin-top:0.75rem;display:flex;flex-direction:column;gap:0.5rem">
+            <li>Set per-event markup % and service charge %</li>
+            <li>Auto-calculate client total and your profit</li>
+            <li>Generate itemized shopping lists by category</li>
+            <li>See cost per guest and recommended pricing</li>
+            <li>Venue-specific menus with custom pricing</li>
+          </ul>
+          <a href="/register/" class="modal-cta">Sign Up as Caterer →</a>`
+      },
+      individual: {
+        icon: '👤',
+        title: 'For Individuals',
+        body: `<span class="modal-tag">Individual Role</span>
+          <p>Planning a personal event like a birthday or house party? We've got you.</p>
+          <ul style="padding-left:1.25rem;margin-top:0.75rem;display:flex;flex-direction:column;gap:0.5rem">
+            <li>Set a personal budget cap for your event</li>
+            <li>Visual budget tracker — see how much you have left</li>
+            <li>Dietary preference enforcement (Vegetarian / Vegan)</li>
+            <li>Get warned if your menu exceeds your budget</li>
+            <li>Simple, clean results with no business jargon</li>
+          </ul>
+          <a href="/register/" class="modal-cta">Sign Up as Individual →</a>`
+      },
+      admin: {
+        icon: '🛠️',
+        title: 'Admin Panel',
+        body: `<span class="modal-tag">Admin Access</span>
+          <p>Full control over the platform via the built-in admin panel.</p>
+          <ul style="padding-left:1.25rem;margin-top:0.75rem;display:flex;flex-direction:column;gap:0.5rem">
+            <li>Add, edit, and deactivate dishes and categories</li>
+            <li>Manage venues and assign venue-specific menus</li>
+            <li>View all users and their roles</li>
+            <li>Monitor all events across the platform</li>
+          </ul>
+          <p style="margin-top:0.75rem;font-size:0.85rem;color:#888">Admin login: <code>admin@buffet.com</code> / <code>Admin@123</code></p>
+          <a href="/admin/" class="modal-cta">Open Admin Panel →</a>`
+      },
+      email: {
+        icon: '✉️',
+        title: 'Get in Touch',
+        body: `<span class="modal-tag">Email Us</span>
+          <p>Have a question, feedback, or partnership inquiry? We'd love to hear from you.</p>
+          <p style="margin-top:1rem;font-size:1.05rem;font-weight:600;color:#C75B39">hello@smartbuffet.in</p>
+          <p style="margin-top:0.5rem;font-size:0.88rem;color:#888">We typically respond within 24 hours on business days.</p>`
+      },
+      location: {
+        icon: '📍',
+        title: 'Our Location',
+        body: `<span class="modal-tag">Mumbai, India</span>
+          <p>Smart Buffer Planner is proudly built in Mumbai, India — the city that never stops celebrating.</p>
+          <p style="margin-top:0.75rem">We serve event planners, caterers, and individuals across India with tools designed for Indian cuisine, venues, and budgets.</p>
+          <p style="margin-top:0.75rem;font-size:0.88rem;color:#888">🇮🇳 Made in India, for India.</p>`
+      },
+      twitter: {
+        icon: '🐦',
+        title: 'Follow Us on Twitter',
+        body: `<span class="modal-tag">@SmartBuffetIN</span>
+          <p>Stay updated with the latest features, tips for event planning, and buffet inspiration.</p>
+          <p style="margin-top:0.75rem;font-size:0.88rem;color:#888">Our Twitter handle: <strong>@SmartBuffetIN</strong></p>`
+      },
+      linkedin: {
+        icon: '💼',
+        title: 'Connect on LinkedIn',
+        body: `<span class="modal-tag">LinkedIn</span>
+          <p>Follow our LinkedIn page for product updates, case studies, and catering industry insights.</p>
+          <p style="margin-top:0.75rem;font-size:0.88rem;color:#888">Search <strong>Smart Buffer Planner</strong> on LinkedIn.</p>`
+      },
+      github: {
+        icon: '💻',
+        title: 'Open Source',
+        body: `<span class="modal-tag">GitHub</span>
+          <p>Smart Buffer Planner is built with Django REST Framework + vanilla JS. The codebase is clean, modular, and well-documented.</p>
+          <p style="margin-top:0.75rem;font-size:0.88rem;color:#888">Interested in contributing or forking? Reach out at hello@smartbuffet.in</p>`
+      },
+      privacy: {
+        icon: '🔒',
+        title: 'Privacy Policy',
+        body: `<span class="modal-tag">Last updated: March 2026</span>
+          <p><strong>Data we collect:</strong> email, name, role, and event data you create.</p>
+          <p style="margin-top:0.75rem"><strong>How we use it:</strong> solely to provide the Smart Buffer Planner service. We never sell your data.</p>
+          <p style="margin-top:0.75rem"><strong>Storage:</strong> all data is stored securely and never shared with third parties without your consent.</p>
+          <p style="margin-top:0.75rem"><strong>Cookies:</strong> we use JWT tokens stored in localStorage for authentication only.</p>
+          <p style="margin-top:0.75rem"><strong>Contact:</strong> hello@smartbuffet.in for any privacy concerns.</p>`
+      },
+      terms: {
+        icon: '📄',
+        title: 'Terms of Service',
+        body: `<span class="modal-tag">Last updated: March 2026</span>
+          <p><strong>Use of Service:</strong> Smart Buffer Planner is provided for lawful event planning purposes only.</p>
+          <p style="margin-top:0.75rem"><strong>Accounts:</strong> you are responsible for maintaining the security of your account credentials.</p>
+          <p style="margin-top:0.75rem"><strong>Content:</strong> event data you create belongs to you. We do not claim ownership.</p>
+          <p style="margin-top:0.75rem"><strong>Availability:</strong> we aim for high uptime but do not guarantee uninterrupted service.</p>
+          <p style="margin-top:0.75rem"><strong>Changes:</strong> we may update these terms with notice via email.</p>`
+      },
+    };
+
+    function openModal(key) {
+      const m = MODALS[key];
+      if (!m) return;
+      document.getElementById('modal-icon').textContent = m.icon;
+      document.getElementById('modal-title').textContent = m.title;
+      document.getElementById('modal-body').innerHTML = m.body;
+      const overlay = document.getElementById('modal-overlay');
+      const box = document.getElementById('modal-box');
+      overlay.style.display = 'block';
+      box.style.display = 'block';
+      requestAnimationFrame(() => {
+        box.style.opacity = '1';
+        box.style.transform = 'translate(-50%,-50%) scale(1)';
+      });
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      const box = document.getElementById('modal-box');
+      const overlay = document.getElementById('modal-overlay');
+      box.style.opacity = '0';
+      box.style.transform = 'translate(-50%,-50%) scale(0.95)';
+      setTimeout(() => {
+        box.style.display = 'none';
+        overlay.style.display = 'none';
+        document.body.style.overflow = '';
+      }, 220);
+    }
+
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+    </script>
+
+</body>
+</html>

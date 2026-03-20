@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% block title %}Menu Selection - Smart Buffer Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+.dish-card {
+  cursor: pointer; border: 2px solid var(--color-blush); border-radius: 12px;
+  padding: 0.85rem; background: white; transition: all 0.15s; position: relative;
+}
+.dish-card:hover { border-color: var(--color-terracotta); background: #fdf8f5; }
+.dish-card.selected { border-color: var(--color-sage); background: #f0f5f0; }
+.dish-card.selected::after {
+  content: '✓'; position: absolute; top: 0.5rem; right: 0.6rem;
+  color: var(--color-sage); font-weight: 700; font-size: 0.9rem;
+}
+.category-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--color-blush);
+}
+.category-header h6 { font-family: var(--font-display); font-size: 1rem; font-weight: 700; margin: 0; }
+.dishes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; padding: 1rem; }
+.selected-item { display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 1rem; border-bottom: 1px solid var(--color-blush); font-size: 0.88rem; }
+.selected-item:last-child { border-bottom: none; }
+.filter-bar { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-blush); }
+.filter-bar input, .filter-bar select { background: var(--color-cream); border: 2px solid var(--color-blush); border-radius: 50px; padding: 0.45rem 1rem; font-family: var(--font-body); font-size: 0.85rem; outline: none; }
+.filter-bar input:focus, .filter-bar select:focus { border-color: var(--color-terracotta); }
+.sidebar-header { background: var(--color-charcoal); color: var(--color-cream); padding: 1rem 1.25rem; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center; }
+.sidebar-header h6 { font-family: var(--font-display); font-size: 1rem; margin: 0; }
+.count-badge { background: var(--color-terracotta); color: white; border-radius: 50px; padding: 0.15rem 0.6rem; font-size: 0.75rem; font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div style="max-width:1200px;margin:0 auto;padding:0 5%">
+    <div style="display:flex;align-items:center;gap:1rem">
+      <a href="/dashboard/" class="btn-sbp btn-sbp-ghost btn-sbp-sm"><i class="fas fa-arrow-left"></i></a>
+      <div>
+        <h1>Select Menu</h1>
+        <p id="eventSubtitle">Loading event...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:1200px;margin:0 auto;padding:0 5% 3rem;display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:start">
+
+  <!-- Left: Dishes -->
+  <div>
+    <div id="warningBox" style="display:none;margin-bottom:1rem"></div>
+
+    <div class="sbp-card" style="margin-bottom:1rem">
+      <div class="filter-bar">
+        <input type="text" id="dishSearch" placeholder="🔍 Search dishes..." oninput="filterDishes()" style="flex:1;min-width:150px" />
+        <select id="vegFilter" onchange="filterDishes()" style="appearance:none;padding-right:2rem;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%235A6B5C' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 0.75rem center">
+          <option value="">All Dishes</option>
+          <option value="veg">Vegetarian Only</option>
+          <option value="nonveg">Non-Vegetarian</option>
+        </select>
+        <button class="btn-sbp btn-sbp-ghost btn-sbp-sm" onclick="loadSeasonalSuggestions()">
+          <i class="fas fa-sun"></i> Seasonal Picks
+        </button>
+      </div>
+    </div>
+
+    <div id="menuCategories">
+      <div style="text-align:center;padding:3rem;color:var(--color-sage)">
+        <div class="sbp-spinner sbp-spinner-dark" style="margin:0 auto"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Selected -->
+  <div style="position:sticky;top:80px">
+    <div class="sbp-card" style="border-radius:16px;overflow:hidden">
+      <div class="sidebar-header">
+        <h6><i class="fas fa-shopping-cart" style="margin-right:0.5rem"></i>Selected</h6>
+        <span class="count-badge" id="selectedCount">0</span>
+      </div>
+      <div style="max-height:380px;overflow-y:auto" id="selectedList">
+        <div style="text-align:center;padding:2rem;color:var(--color-sage);font-size:0.9rem">No dishes selected</div>
+      </div>
+      <div style="padding:1rem;border-top:1px solid var(--color-blush)">
+        <div id="selectionWarnings" style="margin-bottom:0.75rem;font-size:0.82rem;color:var(--color-terracotta)"></div>
+        <button class="btn-sbp btn-sbp-primary" id="submitMenuBtn" onclick="submitMenu()" disabled style="width:100%;justify-content:center">
+          <i class="fas fa-calculator"></i> Calculate Buffet Plan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@media (max-width: 768px) {
+  div[style*="grid-template-columns:1fr 300px"] { grid-template-columns: 1fr !important; }
+  div[style*="position:sticky"] { position: static !important; }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+requireAuth();
+const eventId = window.location.pathname.split('/')[2];
+let allDishes = [];
+let selectedDishes = new Set();
+
+async function loadPage() {
+  const event = await apiGet(`/api/events/${eventId}/`);
+  if (event) {
+    document.getElementById('eventSubtitle').textContent = `${event.name} · ${event.guest_count} guests · ${event.event_date}`;
+    if (event.menu_items) event.menu_items.forEach(item => selectedDishes.add(item.dish));
+
+    // Show venue banner if linked
+    if (event.venue_ref) {
+      const wb = document.getElementById('warningBox');
+      wb.className = 'sbp-alert sbp-alert-info';
+      wb.innerHTML = `<i class="fas fa-map-marker-alt"></i><span>Showing menu for <strong>${event.venue_name || 'selected venue'}</strong>. Only dishes offered by this venue are displayed.</span>`;
+      wb.style.display = 'flex';
+    }
+  }
+
+  // Load venue-specific dishes or all dishes
+  const dishUrl = event?.venue_ref
+    ? `/api/menu/venues/${event.venue_ref}/dishes/`
+    : '/api/menu/dishes/by_category/';
+
+  const data = await apiGet(dishUrl);
+  if (data) {
+    allDishes = data;
+    const u = getUser();
+    if (u?.role==='individual' && u?.dietary_preference==='vegetarian') {
+      document.getElementById('vegFilter').value = 'veg';
+      const wb = document.getElementById('warningBox');
+      wb.className = 'sbp-alert sbp-alert-info';
+      wb.innerHTML = '<i class="fas fa-leaf"></i><span>Your dietary preference is <strong>Vegetarian</strong>. Non-veg dishes are hidden.</span>';
+      wb.style.display = 'flex';
+    }
+    renderCategories(data);
+    updateSelectedPanel();
+  }
+}
+
+function renderCategories(data) {
+  const container = document.getElementById('menuCategories');
+  if (!data.length) { container.innerHTML = '<p style="color:var(--color-sage)">No dishes available.</p>'; return; }
+  container.innerHTML = data.map(group => `
+    <div class="sbp-card category-group" data-category="${group.category.name}" style="margin-bottom:1rem">
+      <div class="category-header">
+        <h6><i class="fas fa-tag" style="color:var(--color-terracotta);margin-right:0.5rem"></i>${group.category.name}
+          <span class="sbp-badge badge-charcoal" style="margin-left:0.5rem;font-size:0.7rem">${group.dishes.length}</span>
+        </h6>
+        <button class="btn-sbp btn-sbp-ghost btn-sbp-sm" onclick="selectAllInCategory('${group.category.name}')">Select All</button>
+      </div>
+      <div class="dishes-grid">
+        ${group.dishes.map(dish => `
+          <div class="dish-item" data-name="${dish.name.toLowerCase()}" data-veg="${dish.is_vegetarian}" data-category="${group.category.name}">
+            <div class="dish-card ${selectedDishes.has(dish.id)?'selected':''}" id="dish-${dish.id}"
+                 onclick="toggleDish(${dish.id},'${dish.name.replace(/'/g,"\\'")}','${group.category.name}')">
+              <div style="font-weight:600;font-size:0.88rem;margin-bottom:0.3rem">${dish.name}
+                ${dish.is_vegetarian?'<span class="sbp-badge badge-sage" style="font-size:0.65rem;margin-left:0.3rem">Veg</span>':''}
+              </div>
+              <div style="color:var(--color-sage);font-size:0.78rem">
+                <i class="fas fa-weight" style="margin-right:0.2rem"></i>${dish.quantity_per_person}${dish.unit}/person
+                &nbsp;·&nbsp; $${dish.cost_per_person?.toFixed(2)}/person
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function toggleDish(id, name, category) {
+  const card = document.getElementById(`dish-${id}`);
+  if (selectedDishes.has(id)) { selectedDishes.delete(id); card.classList.remove('selected'); }
+  else { selectedDishes.add(id); card.classList.add('selected'); }
+  updateSelectedPanel(); checkCategoryWarnings();
+}
+
+function selectAllInCategory(catName) {
+  document.querySelectorAll(`.dish-item[data-category="${catName}"]`).forEach(el => {
+    const id = parseInt(el.querySelector('[id^="dish-"]').id.split('-')[1]);
+    if (!selectedDishes.has(id)) toggleDish(id, '', catName);
+  });
+}
+
+function updateSelectedPanel() {
+  const list = document.getElementById('selectedList');
+  const count = document.getElementById('selectedCount');
+  const btn = document.getElementById('submitMenuBtn');
+  count.textContent = selectedDishes.size;
+  btn.disabled = selectedDishes.size === 0;
+  if (!selectedDishes.size) {
+    list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--color-sage);font-size:0.9rem">No dishes selected</div>';
+    return;
+  }
+  const items = [];
+  selectedDishes.forEach(id => {
+    const card = document.getElementById(`dish-${id}`);
+    if (card) {
+      const name = card.querySelector('[style*="font-weight:600"]').childNodes[0].textContent.trim();
+      items.push(`<div class="selected-item">
+        <span>${name}</span>
+        <button onclick="toggleDish(${id})" style="background:none;border:none;color:var(--color-terracotta);cursor:pointer;font-size:0.85rem;padding:0.2rem">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>`);
+    }
+  });
+  list.innerHTML = items.join('');
+}
+
+function checkCategoryWarnings() {
+  const catCounts = {};
+  selectedDishes.forEach(id => {
+    const card = document.getElementById(`dish-${id}`);
+    if (card) { const cat = card.closest('.category-group')?.dataset.category; if (cat) catCounts[cat] = (catCounts[cat]||0)+1; }
+  });
+  const warnings = Object.entries(catCounts).filter(([,c])=>c>5)
+    .map(([cat,c])=>`<div><i class="fas fa-exclamation-triangle" style="margin-right:0.3rem"></i>Too many in <strong>${cat}</strong> (${c})</div>`);
+  document.getElementById('selectionWarnings').innerHTML = warnings.join('');
+}
+
+function filterDishes() {
+  const q = document.getElementById('dishSearch').value.toLowerCase();
+  const veg = document.getElementById('vegFilter').value;
+  document.querySelectorAll('.dish-item').forEach(el => {
+    const nm = el.dataset.name.includes(q);
+    const vm = !veg||(veg==='veg'&&el.dataset.veg==='true')||(veg==='nonveg'&&el.dataset.veg==='false');
+    el.style.display = nm&&vm?'':'none';
+  });
+}
+
+async function loadSeasonalSuggestions() {
+  const data = await apiGet('/api/menu/dishes/seasonal_suggestions/');
+  if (data) {
+    const wb = document.getElementById('warningBox');
+    wb.className = 'sbp-alert sbp-alert-info';
+    wb.innerHTML = `<i class="fas fa-sun"></i><span><strong>${data.season.charAt(0).toUpperCase()+data.season.slice(1)} Season Picks:</strong> ${data.dishes.slice(0,5).map(d=>`<span class="sbp-badge badge-charcoal" style="margin-left:0.3rem">${d.name}</span>`).join('')}</span>`;
+    wb.style.display = 'flex';
+  }
+}
+
+async function submitMenu() {
+  const btn = document.getElementById('submitMenuBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="sbp-spinner"></div> Calculating...';
+  const res = await fetch(`/api/events/${eventId}/submit_menu/`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','Authorization':'Bearer '+getToken()},
+    body: JSON.stringify({dish_ids: Array.from(selectedDishes)})
+  });
+  const data = await res.json();
+  if (res.ok) {
+    if (data.warnings?.length) {
+      const wb = document.getElementById('warningBox');
+      wb.className = 'sbp-alert sbp-alert-warning';
+      wb.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>'+data.warnings.join('<br>')+'</span>';
+      wb.style.display = 'flex';
+      setTimeout(() => window.location.href = `/events/${eventId}/result/`, 2000);
+    } else { window.location.href = `/events/${eventId}/result/`; }
+  } else {
+    const wb = document.getElementById('warningBox');
+    wb.className = 'sbp-alert sbp-alert-danger';
+    wb.innerHTML = '<i class="fas fa-exclamation-circle"></i><span>'+JSON.stringify(data)+'</span>';
+    wb.style.display = 'flex';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-calculator"></i> Calculate Buffet Plan';
+  }
+}
+
+loadPage();
+</script>
+{% endblock %}
